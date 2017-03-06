@@ -327,5 +327,59 @@ namespace Tests.Linq
 				AreEqual(expected, query);
 			}
 		}
+
+
+		[Test, DataContextSource(false), Ignore("Not supported")]
+		public void Issue482DataConnectionTest(string context)
+		{
+			var expected = Parent;
+
+			using (new AllowMultipleQuery())
+			using (var db = new TestDataConnection(context))
+			using (db.BeginTransaction())
+			{
+				var allInTransaction = true;
+				var counter          = 0;
+
+				db.OnTraceConnection = i =>
+				{
+					allInTransaction &= i.DataConnection.Transaction != null;
+					counter++;
+				};
+
+				db.GetTable<Child>().Set(_ => _.ParentID, -1).Update();
+
+				var parents = db.Parent.LoadWith(_ => _.Children).ToList();
+
+				AreEqual(expected, parents);
+
+				foreach (var p in parents)
+					Assert.IsEmpty(p.Children);
+
+				Assert.That(counter > 0);
+				Assert.That(allInTransaction);
+			}
+		}
+
+		[Test, DataContextSource(false), Ignore("Not supported")]
+		public void Issue482DataContextTest(string context)
+		{
+			var expected = Parent;
+
+			var db = new DataContext(context);
+
+			using (new AllowMultipleQuery())
+			using (db.BeginTransaction(System.Data.IsolationLevel.ReadCommitted))
+			{
+				db.GetTable<Child>().Set(_ => _.ParentID, -1).Update();
+
+				var parents = db.GetTable<Parent>().LoadWith(_ => _.Children).ToList();
+
+				AreEqual(expected, parents);
+
+				foreach (var p in parents)
+					Assert.IsEmpty(p.Children);
+			}
+		}
 	}
 }

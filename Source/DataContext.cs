@@ -267,7 +267,7 @@ namespace LinqToDB
 			return dct;
 		}
 
-		public virtual DataContextTransaction BeginTransaction(bool autoCommitOnDispose = true)
+		public virtual DataContextTransaction BeginTransaction()
 		{
 			var dct = new DataContextTransaction(this);
 

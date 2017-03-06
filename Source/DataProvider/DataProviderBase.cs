@@ -102,7 +102,11 @@ namespace LinqToDB.DataProvider
 
 		public virtual object GetConnectionInfo(DataConnection dataConnection, string parameterName)
 		{
-			return null;
+			switch (parameterName)
+			{
+				case "IsMarsEnabled": return true;
+				default             : return null;
+			}
 		}
 
 		#endregion
