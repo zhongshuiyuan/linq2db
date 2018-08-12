@@ -18,7 +18,7 @@ namespace Tests.Benchmark
 			else
 			{
 				BenchmarkRunner.Run<QueryTests>();
-				BenchmarkRunner.Run<QueryCacheCollectionsBenchmark>();
+				//BenchmarkRunner.Run<QueryCacheCollectionsBenchmark>();
 			}
 		}
 	}
