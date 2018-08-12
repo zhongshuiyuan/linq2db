@@ -8,6 +8,7 @@ namespace LinqToDB.ServiceModel
 {
 	using Extensions;
 	using Linq;
+	using LinqToDB.Common;
 	using Mapping;
 	using SqlQuery;
 
@@ -286,7 +287,7 @@ namespace LinqToDB.ServiceModel
 								resourceSet.Name),
 							p);
 
-						func = l.Compile();
+						func = l.CompileExpression();
 
 						_data.RootGetters.Add(resourceSet.Name, func);
 					}

@@ -8,6 +8,7 @@ namespace LinqToDB.DataProvider.DB2
 	using Configuration;
 	using Data;
 	using Extensions;
+	using LinqToDB.Common;
 
 	public abstract class TypeCreatorBase
 	{
@@ -21,7 +22,7 @@ namespace LinqToDB.DataProvider.DB2
 				Expression.Convert(Expression.New(ctor, parm), typeof(object)),
 				parm);
 
-			return expr.Compile();
+			return expr.CompileExpression();
 		}
 
 		protected Func<T,object> GetCreator<T>(Type paramType)
@@ -32,7 +33,7 @@ namespace LinqToDB.DataProvider.DB2
 				Expression.Convert(Expression.New(ctor, Expression.Convert(parm, paramType)), typeof(object)),
 				parm);
 
-			return expr.Compile();
+			return expr.CompileExpression();
 		}
 
 		public static implicit operator Type(TypeCreatorBase typeCreator)
@@ -52,7 +53,7 @@ namespace LinqToDB.DataProvider.DB2
 			if (_creator == null)
 			{
 				var expr = Expression.Lambda<Func<object>>(Expression.Convert(Expression.New(Type), typeof(object)));
-				_creator = expr.Compile();
+				_creator = expr.CompileExpression();
 			}
 
 			return _creator();

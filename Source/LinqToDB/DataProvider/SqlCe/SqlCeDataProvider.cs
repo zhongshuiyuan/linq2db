@@ -10,6 +10,7 @@ using LinqToDB.Extensions;
 namespace LinqToDB.DataProvider.SqlCe
 {
 	using Data;
+	using LinqToDB.Common;
 	using Mapping;
 	using SchemaProvider;
 	using SqlProvider;
@@ -81,7 +82,7 @@ namespace LinqToDB.DataProvider.SqlCe
 					Expression.Constant(value)),
 				p);
 
-			return l.Compile();
+			return l.CompileExpression();
 		}
 
 		#region Overrides

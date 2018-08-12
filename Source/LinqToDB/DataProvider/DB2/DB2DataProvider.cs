@@ -9,6 +9,7 @@ namespace LinqToDB.DataProvider.DB2
 {
 	using Data;
 	using Extensions;
+	using LinqToDB.Common;
 	using Mapping;
 	using SchemaProvider;
 	using SqlProvider;
@@ -116,7 +117,7 @@ namespace LinqToDB.DataProvider.DB2
 		static object GetNullValue(Type type)
 		{
 			var getValue = Expression.Lambda<Func<object>>(Expression.Convert(Expression.Field(null, type, "Null"), typeof(object)));
-			return getValue.Compile()();
+			return getValue.CompileExpression()();
 		}
 
 		public    override string ConnectionNamespace => DB2Tools.AssemblyName;

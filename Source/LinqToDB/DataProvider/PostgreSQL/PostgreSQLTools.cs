@@ -9,6 +9,7 @@ namespace LinqToDB.DataProvider.PostgreSQL
 {
 	using Configuration;
 	using Data;
+	using LinqToDB.Common;
 
 	[PublicAPI]
 	public static class PostgreSQLTools
@@ -78,7 +79,7 @@ namespace LinqToDB.DataProvider.PostgreSQL
 						try
 						{
 							var connectionType    = Type.GetType("Npgsql.NpgsqlConnection, Npgsql", true);
-							var connectionCreator = DynamicDataProviderBase.CreateConnectionExpression(connectionType).Compile();
+							var connectionCreator = DynamicDataProviderBase.CreateConnectionExpression(connectionType).CompileExpression();
 							var cs                = string.IsNullOrWhiteSpace(connectionString) ? css.ConnectionString : connectionString;
 
 							using (var conn = connectionCreator(cs))

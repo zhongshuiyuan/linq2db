@@ -10,6 +10,7 @@ namespace LinqToDB
 	using Expressions;
 	using Extensions;
 	using Linq;
+	using LinqToDB.Common;
 
 	/// <summary>
 	/// Provides API for compilation and caching of queries for reuse.
@@ -112,7 +113,7 @@ namespace LinqToDB
 				return pi;
 			});
 
-			return Expression.Lambda<Func<object[],object>>(Expression.Convert(info, typeof(object)), ps).Compile();
+			return Expression.Lambda<Func<object[],object>>(Expression.Convert(info, typeof(object)), ps).CompileExpression();
 		}
 
 		#region Invoke

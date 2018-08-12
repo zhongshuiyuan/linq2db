@@ -343,7 +343,7 @@ namespace LinqToDB.Linq.Builder
 							Expression.Constant(context.Builder.CurrentSqlParameters),
 							ExpressionBuilder.ExpressionParam,
 							ExpressionBuilder.ParametersParam,
-							Expression.Constant(keyReader.Compile()),
+							Expression.Constant(keyReader.CompileExpression()),
 							Expression.Constant(itemReader)
 						});
 				}

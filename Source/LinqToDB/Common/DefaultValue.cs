@@ -82,7 +82,7 @@ namespace LinqToDB.Common
 						Expression.Convert(
 							Expression.Call(mi.GetGenericMethodDefinition().MakeGenericMethod(type)),
 							typeof(object)))
-						.Compile()();
+						.CompileExpression()();
 			}
 
 			_values[type] = value;

@@ -48,7 +48,7 @@ namespace LinqToDB.Linq
 					if (qr != null)
 						qr.MapperExpression = _mapperExpression;
 
-					_mapper = _mapperExpression.Compile();
+					_mapper = _mapperExpression.CompileExpression();
 				}
 
 				try
@@ -69,7 +69,7 @@ namespace LinqToDB.Linq
 					if (qr != null)
 						qr.MapperExpression = _mapperExpression;
 
-					_mapper = _expression.Compile();
+					_mapper = _expression.CompileExpression();
 
 					_isFaulted = true;
 
@@ -89,7 +89,7 @@ namespace LinqToDB.Linq
 					if (qr != null)
 						qr.MapperExpression = _mapperExpression;
 
-					_mapper = _expression.Compile();
+					_mapper = _expression.CompileExpression();
 
 					_isFaulted = true;
 

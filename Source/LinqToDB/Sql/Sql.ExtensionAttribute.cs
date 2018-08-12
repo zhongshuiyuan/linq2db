@@ -16,6 +16,7 @@ using NotNull = JetBrains.Annotations.NotNullAttribute;
 namespace LinqToDB
 {
 	using Extensions;
+	using LinqToDB.Common;
 	using SqlQuery;
 
 	[AttributeUsage(AttributeTargets.Parameter)]
@@ -292,7 +293,7 @@ namespace LinqToDB
 				public T GetValue<T>(int index)
 				{
 					var lambda = System.Linq.Expressions.Expression.Lambda<Func<T>>(Arguments[index]);
-					return lambda.Compile()();
+					return lambda.CompileExpression()();
 				}
 
 				public T GetValue<T>(string argName)
@@ -380,7 +381,7 @@ namespace LinqToDB
 			static T GetExpressionValue<T>(Expression expr)
 			{
 				var lambda = System.Linq.Expressions.Expression.Lambda<Func<T>>(expr);
-				return lambda.Compile()();
+				return lambda.CompileExpression()();
 			}
 
 			protected List<SqlExtensionParam> BuildFunctionsChain(MappingSchema mapping, SelectQuery query, Expression expr, ConvertHelper convertHelper)

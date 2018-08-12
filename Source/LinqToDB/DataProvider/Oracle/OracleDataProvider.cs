@@ -13,6 +13,7 @@ namespace LinqToDB.DataProvider.Oracle
 	using Data;
 	using Expressions;
 	using Extensions;
+	using LinqToDB.Common;
 	using Mapping;
 	using SqlProvider;
 	using Tools;
@@ -295,7 +296,7 @@ namespace LinqToDB.DataProvider.Oracle
 								"BindByName"),
 							Expression.Constant(true)),
 							p
-					).Compile();
+					).CompileExpression();
 			}
 
 			{
@@ -323,7 +324,7 @@ namespace LinqToDB.DataProvider.Oracle
 							typeof(object)),
 						dto,
 						zone
-					).Compile();
+					).CompileExpression();
 			}
 
 			_setSingle         = GetSetParameter(connectionType, "OracleParameter", "OracleDbType", "OracleDbType", "BinaryFloat");
@@ -388,11 +389,11 @@ namespace LinqToDB.DataProvider.Oracle
 			var getValue = Expression.Lambda<Func<object>>(Expression.Convert(Expression.Field(null, type, "Null"), typeof(object)));
 			try
 			{
-				return getValue.Compile()();
+				return getValue.CompileExpression()();
 			}
 			catch (Exception)
 			{
-				return getValue.Compile()();
+				return getValue.CompileExpression()();
 			}
 		}
 

@@ -105,7 +105,7 @@ namespace LinqToDB.DataProvider.Informix
 				Expression.Convert(
 					Expression.New(_ifxTimeSpan.GetConstructorEx(new[] { typeof(TimeSpan) }), p),
 					typeof(object)),
-				p).Compile();
+				p).CompileExpression();
 
 			_setText = GetSetParameter(connectionType, "IfxParameter", "IfxType", "IfxType", "Clob");
 
@@ -122,7 +122,7 @@ namespace LinqToDB.DataProvider.Informix
 			try
 			{
 				var getValue = Expression.Lambda<Func<object>>(Expression.Convert(Expression.Field(null, type, "Null"), typeof(object)));
-				return getValue.Compile()();
+				return getValue.CompileExpression()();
 			}
 			catch (SecurityException)
 			{

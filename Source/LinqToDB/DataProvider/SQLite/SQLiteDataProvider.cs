@@ -8,6 +8,7 @@ namespace LinqToDB.DataProvider.SQLite
 {
 	using Data;
 	using Extensions;
+	using LinqToDB.Common;
 	using Mapping;
 	using SchemaProvider;
 	using SqlProvider;
@@ -138,7 +139,7 @@ namespace LinqToDB.DataProvider.SQLite
 						var l = Expression.Lambda<Action<string>>(
 							Expression.Call(GetConnectionType(), "CreateFile", null, p),
 							p);
-						_createDatabase = l.Compile();
+						_createDatabase = l.CompileExpression();
 					}
 
 					_createDatabase(dbName);

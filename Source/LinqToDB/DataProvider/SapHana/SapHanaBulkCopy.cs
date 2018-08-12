@@ -9,6 +9,7 @@ namespace LinqToDB.DataProvider.SapHana
 	using System.Linq.Expressions;
 
 	using Data;
+	using LinqToDB.Common;
 
 	class SapHanaBulkCopy : BasicBulkCopy
 	{
@@ -155,7 +156,7 @@ namespace LinqToDB.DataProvider.SapHana
 					typeof(IDisposable)),
 				p1, p2, p3);
 
-			return l.Compile();
+			return l.CompileExpression();
 		}
 	}
 }

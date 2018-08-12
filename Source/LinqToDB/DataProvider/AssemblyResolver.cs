@@ -50,7 +50,7 @@ namespace LinqToDB.DataProvider
 				typeof(AppDomain).GetEvent("AssemblyResolve").GetAddMethod(),
 				Expression.Constant(resolver)));
 
-			l.Compile()();
+			l.CompileExpression()();
 //#else
 //			AppDomain.CurrentDomain.AssemblyResolve += resolver;
 //#endif

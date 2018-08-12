@@ -75,7 +75,7 @@ namespace LinqToDB.Linq
 			if (_queryableAccessorDic.TryGetValue(expr, out var e))
 				return _queryableAccessorList.IndexOf(e);
 
-			e = new QueryableAccessor { Accessor = qe.Compile() };
+			e = new QueryableAccessor { Accessor = qe.CompileExpression() };
 			e.Queryable = e.Accessor(expr);
 
 			_queryableAccessorDic. Add(expr, e);
@@ -110,7 +110,7 @@ namespace LinqToDB.Linq
 					Expression.Convert(convExpr.GetBody(Expression.Convert(convParam, valueType)), typeof(object)),
 					convParam);
 
-				converter = lex.Compile();
+				converter = lex.CompileExpression();
 
 				_enumConverters.GetOrAdd(valueType, converter);
 			}

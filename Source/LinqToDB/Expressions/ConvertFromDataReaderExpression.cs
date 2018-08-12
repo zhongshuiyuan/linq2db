@@ -148,7 +148,7 @@ namespace LinqToDB.Expressions
 						expr.Type == typeof(object) ? expr : Convert(expr, typeof(object)),
 						parameter);
 
-					_columnConverters[fromType] = func = lex.Compile();
+					_columnConverters[fromType] = func = lex.CompileExpression();
 				}
 
 				try
@@ -183,7 +183,7 @@ namespace LinqToDB.Expressions
 						ex.Type == typeof(object) ? ex : Expression.Convert(ex, typeof(object)),
 						pex);
 
-					_columnConverters[fromType] = func = lex.Compile();
+					_columnConverters[fromType] = func = lex.CompileExpression();
 				}
 
 				return func(value);

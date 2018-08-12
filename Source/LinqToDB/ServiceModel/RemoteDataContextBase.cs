@@ -13,6 +13,7 @@ namespace LinqToDB.ServiceModel
 {
 	using Expressions;
 	using Extensions;
+	using LinqToDB.Common;
 	using Mapping;
 	using SqlProvider;
 
@@ -213,7 +214,7 @@ namespace LinqToDB.ServiceModel
 												Expression.Constant(GetSqlOptimizer()),
 												Expression.Constant(((IDataContext)this).SqlProviderFlags),
 												Expression.Constant(((IDataContext)this).MappingSchema.ValueToSqlConverter)
-											})).Compile());
+											})).CompileExpression());
 				}
 
 				return _createSqlProvider;
@@ -245,7 +246,7 @@ namespace LinqToDB.ServiceModel
 											new Expression[]
 											{
 												Expression.Constant(((IDataContext)this).SqlProviderFlags)
-											})).Compile());
+											})).CompileExpression());
 				}
 
 				return _getSqlOptimizer;

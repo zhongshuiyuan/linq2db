@@ -11,6 +11,7 @@ namespace LinqToDB.DataProvider
 {
 	using Data;
 	using Expressions;
+	using LinqToDB.Common;
 	using Mapping;
 	using SqlProvider;
 
@@ -92,7 +93,7 @@ namespace LinqToDB.DataProvider
 					typeof(IDisposable)),
 				p1, p2);
 
-			return l.Compile();
+			return l.CompileExpression();
 		}
 
 		protected Func<int,string,object> CreateColumnMappingCreator(Type columnMappingType)
@@ -107,7 +108,7 @@ namespace LinqToDB.DataProvider
 					typeof(object)),
 				p1, p2);
 
-			return l.Compile();
+			return l.CompileExpression();
 		}
 
 		protected Action<object,Action<object>> CreateBulkCopySubscriber(object bulkCopy, string eventName)
@@ -150,7 +151,7 @@ namespace LinqToDB.DataProvider
 					}),
 				new[] { actionParameter });
 
-			var dgt = lambda.Compile();
+			var dgt = lambda.CompileExpression();
 
 			return (obj,action) => eventInfo.AddEventHandler(obj, dgt(action));
 #endif

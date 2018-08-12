@@ -7,6 +7,7 @@ using JetBrains.Annotations;
 
 namespace LinqToDB.Expressions
 {
+	using LinqToDB.Common;
 	using LinqToDB.Extensions;
 
 	public static class Extensions
@@ -32,7 +33,7 @@ namespace LinqToDB.Expressions
 						Expression.PropertyOrField(p, "DebugView"),
 						p);
 
-					_getDebugView = l.Compile();
+					_getDebugView = l.CompileExpression();
 				}
 				catch (ArgumentException)
 				{
@@ -40,7 +41,7 @@ namespace LinqToDB.Expressions
 						Expression.Call(p, MemberHelper.MethodOf<Expression>(e => e.ToString())),
 						p);
 
-					_getDebugView = l.Compile();
+					_getDebugView = l.CompileExpression();
 				}
 			}
 

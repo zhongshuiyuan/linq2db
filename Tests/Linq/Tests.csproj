@@ -6,6 +6,7 @@
 		<NoWarn>$(NoWarn);CS0649;CS0429</NoWarn>
 		<AssemblyName>linq2db.Tests</AssemblyName>
 		<Configurations>Debug;Release;AppVeyor;NET.45;CORE.1;CORE.2</Configurations>
+		<SignAssembly>true</SignAssembly>
 	</PropertyGroup>
 
 	<PropertyGroup Condition=" '$(Configuration)' == 'AppVeyor' ">
@@ -228,5 +229,11 @@
 	  <PackageReference Include="Oracle.ManagedDataAccess.Core">
 	    <Version>2.12.0-beta2</Version>
 	  </PackageReference>
+	</ItemGroup>
+
+	<ItemGroup>
+	  <Reference Include="FastExpressionCompiler">
+	    <HintPath>..\..\Redist\FastExpressionCompiler\FastExpressionCompiler.dll</HintPath>
+	  </Reference>
 	</ItemGroup>
 </Project>

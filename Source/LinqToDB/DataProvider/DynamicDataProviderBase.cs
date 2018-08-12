@@ -7,6 +7,7 @@ namespace LinqToDB.DataProvider
 {
 	using Configuration;
 	using Extensions;
+	using LinqToDB.Common;
 	using Mapping;
 
 	public abstract class DynamicDataProviderBase : DataProviderBase
@@ -61,7 +62,7 @@ namespace LinqToDB.DataProvider
 			if (_createConnection == null)
 			{
 				var l = CreateConnectionExpression(GetConnectionType());
-				_createConnection = l.Compile();
+				_createConnection = l.CompileExpression();
 			}
 
 			return _createConnection(connectionString);
@@ -95,7 +96,7 @@ namespace LinqToDB.DataProvider
 					Expression.Constant(value)),
 				p);
 
-			return l.Compile();
+			return l.CompileExpression();
 		}
 
 		protected Action<IDbDataParameter> GetSetParameter(
@@ -124,7 +125,7 @@ namespace LinqToDB.DataProvider
 					Expression.Constant(value)),
 				p);
 
-			return l.Compile();
+			return l.CompileExpression();
 		}
 
 		// SetField<IfxDataReader,Int64>("BIGINT", (r,i) => r.GetBigInt(i));

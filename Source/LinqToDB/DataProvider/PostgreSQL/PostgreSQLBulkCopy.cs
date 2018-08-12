@@ -174,7 +174,7 @@ namespace LinqToDB.DataProvider.PostgreSQL
 					Expression.Block(new[] { writerVar }, exprs),
 					pMapping, pWriter, pColumns, pEntity);
 
-			return ex.Compile();
+			return ex.CompileExpression();
 		}
 	}
 }

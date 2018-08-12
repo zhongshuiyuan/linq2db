@@ -334,7 +334,7 @@ namespace LinqToDB.Mapping
 
 				var getter = Expression.Lambda<Func<object,object>>(Expression.Convert(getterExpr, typeof(object)), objParam);
 
-				_getter = getter.Compile();
+				_getter = getter.CompileExpression();
 			}
 
 			return _getter(obj);

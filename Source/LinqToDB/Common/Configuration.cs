@@ -1,4 +1,5 @@
 using System;
+using System.Linq.Expressions;
 
 using JetBrains.Annotations;
 
@@ -6,6 +7,35 @@ namespace LinqToDB.Common
 {
 	using Data;
 	using Data.RetryPolicy;
+
+	public static class Compilation
+	{
+		private static Func<LambdaExpression, Delegate> _compiler;
+
+		public static void SetExpressionCompiler(Func<LambdaExpression, Delegate> compiler)
+		{
+			_compiler = compiler;
+		}
+
+		internal static TDelegate CompileExpression<TDelegate>(this Expression<TDelegate> expression)
+			where TDelegate : Delegate
+		{
+			var compiler = _compiler;
+
+			return compiler != null
+				? (TDelegate)compiler(expression)
+				: expression.Compile();
+		}
+
+		internal static Delegate CompileExpression(this LambdaExpression expression)
+		{
+			var compiler = _compiler;
+
+			return compiler != null
+				? compiler(expression)
+				: expression.Compile();
+		}
+	}
 
 	/// <summary>
 	/// Contains global linq2db settings.

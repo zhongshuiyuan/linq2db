@@ -11,6 +11,7 @@ namespace LinqToDB.Data
 	using Extensions;
 	using Linq;
 	using Linq.Builder;
+	using LinqToDB.Common;
 	using Mapping;
 	using Reflection;
 
@@ -282,7 +283,7 @@ namespace LinqToDB.Data
 
 			var lambda = Expression.Lambda<Func<IDataReader,T>>(BuildBlock(expr), DataReaderParam);
 
-			return lambda.Compile();
+			return lambda.CompileExpression();
 		}
 
 		public Expression BuildReaderExpression()

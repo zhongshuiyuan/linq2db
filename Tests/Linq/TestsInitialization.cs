@@ -16,6 +16,8 @@ public class TestsInitialization
 	{
 		// register test provider
 		TestNoopProvider.Init();
+		LinqToDB.Common.Compilation.SetExpressionCompiler(
+			_ => FastExpressionCompiler.ExpressionCompiler.CompileFast(_));
 	}
 
 	[OneTimeTearDown]

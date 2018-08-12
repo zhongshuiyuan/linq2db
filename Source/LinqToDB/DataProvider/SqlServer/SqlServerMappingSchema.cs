@@ -58,7 +58,7 @@ namespace LinqToDB.DataProvider.SqlServer
 					var l = Expression.Lambda<Func<object>>(
 						Expression.Convert(Expression.Property(null, p), typeof(object)));
 
-					var nullValue = l.Compile()();
+					var nullValue = l.CompileExpression()();
 
 					AddScalarType(type, nullValue, true, DataType.Udt);
 

@@ -632,7 +632,7 @@ namespace LinqToDB.Linq.Builder
 
 				var call = Expression.Lambda<Func<LambdaExpression>>(Expression.Convert(expr, typeof(LambdaExpression)));
 
-				return call.Compile()();
+				return call.CompileExpression()();
 			}
 
 			return null;
@@ -1081,7 +1081,7 @@ namespace LinqToDB.Linq.Builder
 			var helper =
 				//Expression.Lambda<Func<IGroupByHelper>>(
 				//	Expression.Convert(Expression.New(gtype), typeof(IGroupByHelper)))
-				//.Compile()();
+				//.CompileExpression()();
 				(IGroupByHelper)Activator.CreateInstance(gtype);
 
 			helper.Set(needSubQuery, sourceExpression, keySelector, elementSelector, resultSelector);
@@ -1209,7 +1209,7 @@ namespace LinqToDB.Linq.Builder
 			var helper =
 				//Expression.Lambda<Func<ISelectManyHelper>>(
 				//	Expression.Convert(Expression.New(gtype), typeof(ISelectManyHelper)))
-				//.Compile()();
+				//.CompileExpression()();
 				(ISelectManyHelper)Activator.CreateInstance(gtype);
 
 			helper.Set(sourceExpression, colSelector);

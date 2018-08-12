@@ -139,7 +139,7 @@ namespace LinqToDB.Common
 						typeof(object)),
 					p);
 
-				l = ex.Compile();
+				l = ex.CompileExpression();
 
 				converters[key] = l;
 			}
@@ -190,7 +190,7 @@ namespace LinqToDB.Common
 								e),
 					p);
 
-				l = ex.Compile();
+				l = ex.CompileExpression();
 
 				ExprHolder<T>.Converters[from] = l;
 			}

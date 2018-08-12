@@ -89,7 +89,7 @@ namespace LinqToDB.DataProvider.DB2
 
 							if (serverTypeProp != null)
 							{
-								var connectionCreator = DynamicDataProviderBase.CreateConnectionExpression(connectionType).Compile();
+								var connectionCreator = DynamicDataProviderBase.CreateConnectionExpression(connectionType).CompileExpression();
 								var cs = string.IsNullOrWhiteSpace(connectionString) ? css.ConnectionString : connectionString;
 
 								using (var conn = connectionCreator(cs))
@@ -100,7 +100,7 @@ namespace LinqToDB.DataProvider.DB2
 										Expression.Convert(
 											Expression.MakeMemberAccess(Expression.Constant(conn), serverTypeProp),
 											typeof(object)))
-										.Compile()();
+										.CompileExpression()();
 
 									var iszOS = serverType.ToString() == "DB2_390";
 

@@ -1259,7 +1259,7 @@ namespace LinqToDB.Linq.Builder
 				return value;
 
 			var lambda = Expression.Lambda<Func<object>>(Expression.Convert(expr, typeof(object)));
-			var v      = lambda.Compile()();
+			var v      = lambda.CompileExpression()();
 
 			if (v != null && v.GetType().IsEnumEx())
 			{
@@ -2082,8 +2082,8 @@ namespace LinqToDB.Linq.Builder
 			return new ParameterAccessor
 			(
 				expression,
-				mapper.Compile(),
-				dataTypeAccessor.Compile(),
+				mapper.CompileExpression(),
+				dataTypeAccessor.CompileExpression(),
 				new SqlParameter(accessorExpression.Type, name, null) { IsQueryParameter = !(dataContext.InlineParameters && accessorExpression.Type.IsScalar(false)) }
 			);
 		}

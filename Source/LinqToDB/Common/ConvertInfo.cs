@@ -41,7 +41,7 @@ namespace LinqToDB.Common
 						var parameterExpression = Expression.Parameter(typeof(object));
 						var lambdaExpression = Expression.Lambda<Func<object, DataParameter>>(
 							Expression.Invoke(this.Lambda, Expression.Convert(parameterExpression, type)), parameterExpression);
-						var convertFunc = lambdaExpression.Compile();
+						var convertFunc = lambdaExpression.CompileExpression();
 						_convertValueToParameter = convertFunc;
 					}
 
