@@ -23,7 +23,7 @@ namespace LinqToDB.Common
 			var compiler = _compiler;
 
 			return compiler != null
-				? (TDelegate)compiler(expression)
+				? (TDelegate)compiler(expression) ?? expression.Compile()
 				: expression.Compile();
 		}
 
@@ -32,7 +32,7 @@ namespace LinqToDB.Common
 			var compiler = _compiler;
 
 			return compiler != null
-				? compiler(expression)
+				? compiler(expression) ?? expression.Compile()
 				: expression.Compile();
 		}
 	}
