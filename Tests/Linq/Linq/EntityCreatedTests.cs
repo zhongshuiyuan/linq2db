@@ -48,6 +48,7 @@ namespace Tests.Linq
 		}
 
 		[Test]
+		[Combinatorial]
 		public void EntityCreatedTest0([DataSources] string configString)
 		{
 			using (var db = GetDataContext(configString))
@@ -57,6 +58,7 @@ namespace Tests.Linq
 		}
 
 		[Test]
+		[Combinatorial]
 		public void EntityCreatedTest1([DataSources] string configString)
 		{
 			using (var db = GetEntityCreatedContext(configString))
@@ -68,6 +70,7 @@ namespace Tests.Linq
 		}
 
 		[Test]
+		[Combinatorial]
 		public void EntityCreatedTest2([DataSources] string configString)
 		{
 			using (var db = GetEntityCreatedContext(configString))
@@ -79,6 +82,7 @@ namespace Tests.Linq
 		}
 
 		[Test]
+		[Combinatorial]
 		public void EntityCreatedTest3([DataSources] string configString, [Values(false,true)] bool checkEntityIdentity)
 		{
 			using (var db = GetEntityCreatedContext(configString))
