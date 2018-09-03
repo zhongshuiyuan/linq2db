@@ -79,7 +79,7 @@
         </member>
         <member name="T:FastExpressionCompiler.ExpressionCompiler.EmittingVisitor">
             <summary>Supports emitting of selected expressions, e.g. lambdaExpr are not supported yet.
-            When emitter find not supported expression it will return false from <see cref="M:FastExpressionCompiler.ExpressionCompiler.EmittingVisitor.TryEmit(System.Linq.Expressions.Expression,System.Type,System.Collections.Generic.IReadOnlyList{System.Linq.Expressions.ParameterExpression},System.Reflection.Emit.ILGenerator,FastExpressionCompiler.ExpressionCompiler.ClosureInfo@,System.Linq.Expressions.ExpressionType,System.Int32)"/>, so I could fallback
+            When emitter find not supported expression it will return false from <see cref="M:FastExpressionCompiler.ExpressionCompiler.EmittingVisitor.TryEmit(System.Linq.Expressions.Expression,System.Type,System.Collections.Generic.IReadOnlyList{System.Linq.Expressions.ParameterExpression},System.Reflection.Emit.ILGenerator,FastExpressionCompiler.ExpressionCompiler.ClosureInfo@,System.Linq.Expressions.ExpressionType,System.Boolean,System.Int32)"/>, so I could fallback
             to normal and slow Expression.Compile.</summary>
         </member>
     </members>
