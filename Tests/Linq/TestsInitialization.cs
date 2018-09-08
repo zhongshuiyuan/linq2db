@@ -1,5 +1,5 @@
 ﻿using System;
-
+using FastExpressionCompiler;
 using NUnit.Framework;
 
 using Tests;
@@ -16,8 +16,10 @@ public class TestsInitialization
 	{
 		// register test provider
 		TestNoopProvider.Init();
+#if !NETSTANDARD1_6
 		LinqToDB.Common.Compilation.SetExpressionCompiler(
-			_ => FastExpressionCompiler.ExpressionCompiler.CompileFast(_, true));
+			_ => ExpressionCompiler.CompileFast(_, true));
+#endif
 	}
 
 	[OneTimeTearDown]
