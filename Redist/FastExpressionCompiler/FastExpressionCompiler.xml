@@ -14,6 +14,9 @@
         <member name="M:FastExpressionCompiler.ExpressionCompiler.CompileFast(System.Linq.Expressions.LambdaExpression,System.Boolean)">
             <summary>Compiles lambda expression to delegate. Use ifFastFailedReturnNull parameter to Not fallback to Expression.Compile, useful for testing.</summary>
         </member>
+        <member name="M:FastExpressionCompiler.ExpressionCompiler.CompileSys``1(System.Linq.Expressions.Expression{``0})">
+            <summary>Unifies Compile for System.Linq.Expressions and FEC.LightExpression</summary>
+        </member>
         <member name="M:FastExpressionCompiler.ExpressionCompiler.CompileFast``1(System.Linq.Expressions.Expression{``0},System.Boolean)">
             <summary>Compiles lambda expression to TDelegate type. Use ifFastFailedReturnNull parameter to Not fallback to Expression.Compile, useful for testing.</summary>
         </member>
@@ -79,7 +82,7 @@
         </member>
         <member name="T:FastExpressionCompiler.ExpressionCompiler.EmittingVisitor">
             <summary>Supports emitting of selected expressions, e.g. lambdaExpr are not supported yet.
-            When emitter find not supported expression it will return false from <see cref="M:FastExpressionCompiler.ExpressionCompiler.EmittingVisitor.TryEmit(System.Linq.Expressions.Expression,System.Type,System.Collections.Generic.IReadOnlyList{System.Linq.Expressions.ParameterExpression},System.Reflection.Emit.ILGenerator,FastExpressionCompiler.ExpressionCompiler.ClosureInfo@,System.Linq.Expressions.ExpressionType,System.Boolean,System.Boolean,System.Int32)"/>, so I could fallback
+            When emitter find not supported expression it will return false from <see cref="M:FastExpressionCompiler.ExpressionCompiler.EmittingVisitor.TryEmit(System.Linq.Expressions.Expression,System.Collections.Generic.IReadOnlyList{System.Linq.Expressions.ParameterExpression},System.Reflection.Emit.ILGenerator,FastExpressionCompiler.ExpressionCompiler.ClosureInfo@,FastExpressionCompiler.ExpressionCompiler.ParentFlags,System.Int32)"/>, so I could fallback
             to normal and slow Expression.Compile.</summary>
         </member>
     </members>
