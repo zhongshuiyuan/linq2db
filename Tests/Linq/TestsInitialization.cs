@@ -1,6 +1,8 @@
-﻿using System;
+﻿using NUnit.Framework;
+
+#if !NETSTANDARD1_6
 using FastExpressionCompiler;
-using NUnit.Framework;
+#endif
 
 using Tests;
 

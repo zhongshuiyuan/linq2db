@@ -59,6 +59,7 @@
 			<Link>Database/Create Scripts/%(FileName)%(Extension)</Link>
 			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 		</None>
+		<Compile Condition="'$(TargetFramework)' != 'netcoreapp1.0'" Include="..\..\..\FastExpressionCompiler\src\FastExpressionCompiler\FastExpressionCompiler.cs" Link="FastExpressionCompiler.cs" />
 		<ProjectReference Include="..\..\Source\LinqToDB\LinqToDB.csproj" />
 		<ProjectReference Include="..\Model\Tests.Model.csproj" />
 		<ProjectReference Include="..\Base\Tests.Base.csproj" />
@@ -224,11 +225,5 @@
 	  <PackageReference Include="Oracle.ManagedDataAccess.Core">
 	    <Version>2.18.3</Version>
 	  </PackageReference>
-	</ItemGroup>
-
-	<ItemGroup>
-	  <Reference Include="FastExpressionCompiler">
-	    <HintPath>..\..\Redist\FastExpressionCompiler\FastExpressionCompiler.dll</HintPath>
-	  </Reference>
 	</ItemGroup>
 </Project>
