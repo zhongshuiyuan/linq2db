@@ -709,7 +709,7 @@ namespace LinqToDB.Linq.Builder
 
 		bool IsAnonymous(Type type)
 		{
-			return type.Name.StartsWith("<>f__AnonymousType");
+			return type.Name.StartsWith("<>");
 		}
 
 		readonly Dictionary<string,string> _nameDic = new Dictionary<string,string>();
@@ -980,7 +980,7 @@ namespace LinqToDB.Linq.Builder
 
 			foreach (var typeNamespaceList in _usedTypes.OrderBy(t => t.Namespace).GroupBy(x => x.Namespace))
 			{
-				if (typeNamespaceList.Any(type =>
+				if (typeNamespaceList.All(type =>
 				{
 					return (!IsUserType(type) ||
 							IsAnonymous(type) ||
@@ -990,7 +990,6 @@ namespace LinqToDB.Linq.Builder
 					continue;
 				_typeBuilder.AppendLine("namespace " + MangleName(IsUserNamespace(typeNamespaceList.Key), typeNamespaceList.Key, "T"));
 				_typeBuilder.AppendLine("{");
-
 				foreach (var type in typeNamespaceList.OrderBy(t => t.Name))
 				{
 					BuildType(type, _dataContext.MappingSchema);
@@ -1001,7 +1000,7 @@ namespace LinqToDB.Linq.Builder
 			expr.Visit(BuildExpression);
 
 			_exprBuilder.Replace("<>h__TransparentIdentifier", "tp");
-			_exprBuilder.Insert(0, "var quey = ");
+			_exprBuilder.Insert(0, "var query = ");
 
 			var result = string.Format(
 @"//---------------------------------------------------------------------------------------------------
