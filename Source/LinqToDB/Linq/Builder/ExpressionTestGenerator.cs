@@ -531,6 +531,25 @@ namespace LinqToDB.Linq.Builder
 			if (type.IsGenericTypeEx())
 				type = type.GetGenericTypeDefinition();
 
+			if (type.IsEnumEx())
+			{
+				// var ed = mappingSchema.GetEntityDescriptor(type); -> todo entity descriptor should contain enum mappings, otherwise fluent mappings will not be included
+				_typeBuilder.AppendLine("	enum " + MangleName(isUserName, type.Name, "T") + " {");
+				foreach (var nm in Enum.GetNames(type))
+				{
+					var attr = "";
+					var valueAttribute = type.GetField(nm).GetCustomAttribute<MapValueAttribute>();
+					if (valueAttribute != null)
+					{
+						attr = "[MapValue(\"" + valueAttribute.Value + "\")] ";
+					}
+					_typeBuilder.AppendLine("		" + attr + nm + " = " + Convert.ToInt64(Enum.Parse(type, nm)) + ",");
+				}
+				_typeBuilder.Remove(_typeBuilder.Length - 1, 1);
+				_typeBuilder.AppendLine("	}");
+				return;
+			}
+
 			var baseClasses = new[] { type.BaseTypeEx() }
 				.Where(t => t != null && t != typeof(object))
 				.Concat(type.GetInterfacesEx()).ToArray();
@@ -548,7 +567,7 @@ namespace LinqToDB.Linq.Builder
 				return string.Format(@"{0}
 		public {1}({2})
 		{{
-			throw new NotImplementedException();
+			// throw new NotImplementedException();
 		}}",
 					attr,
 					name,
@@ -641,7 +660,7 @@ namespace LinqToDB.Linq.Builder
 			{
 				var attr = "";
 				var ed = mappingSchema.GetEntityDescriptor(type);
-				if (ed != null)
+				if (ed != null && !type.IsInterfaceEx())
 				{
 					attr += "	[Table(" + (string.IsNullOrEmpty(ed.TableName) ? "" : "\"" + ed.TableName + "\"") + ")]" + Environment.NewLine;
 				}
