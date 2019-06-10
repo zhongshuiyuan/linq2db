@@ -1488,7 +1488,10 @@ namespace LinqToDB.Mapping
 		/// <returns>Mapping descriptor.</returns>
 		public EntityDescriptor GetEntityDescriptor(Type type)
 		{
-			var key = new { Type = type, ConfigurationID };
+			if (type.IsGenericTypeDefinitionEx())
+				return null;
+
+			var key = ( Type: type, ConfigurationID );
 			var ed = EntityDescriptorsCache.GetOrCreate(key,
 				o =>
 				{
@@ -1535,7 +1538,7 @@ namespace LinqToDB.Mapping
 
 		internal void ResetEntityDescriptor(Type type)
 		{
-			var key = new { Type = type, ConfigurationID };
+			var key = ( Type: type, ConfigurationID );
 			EntityDescriptorsCache.Remove(key);
 		}
 
