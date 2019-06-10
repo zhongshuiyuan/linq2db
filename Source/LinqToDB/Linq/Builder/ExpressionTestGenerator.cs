@@ -11,11 +11,14 @@ namespace LinqToDB.Linq.Builder
 {
 	using Extensions;
 	using LinqToDB.Expressions;
+	using LinqToDB.Mapping;
 
 	class ExpressionTestGenerator
 	{
 		readonly bool          _mangleNames;
 		readonly StringBuilder _exprBuilder = new StringBuilder();
+		readonly Assembly      _linq2dbAssembly;
+		IDataContext           _dataContext;
 
 		string _indent = "\t\t\t\t";
 
@@ -26,6 +29,7 @@ namespace LinqToDB.Linq.Builder
 		public ExpressionTestGenerator(bool mangleNames)
 		{
 			_mangleNames = mangleNames;
+			_linq2dbAssembly = typeof(ExpressionTestGenerator).AssemblyEx();
 		}
 
 		void PushIndent() { _indent += '\t'; }
@@ -509,7 +513,7 @@ namespace LinqToDB.Linq.Builder
 
 		readonly StringBuilder _typeBuilder = new StringBuilder();
 
-		void BuildType(Type type)
+		void BuildType(Type type, MappingSchema mappingSchema)
 		{
 			if (!IsUserType(type) ||
 				IsAnonymous(type) ||
@@ -556,15 +560,26 @@ namespace LinqToDB.Linq.Builder
 
 			var members = type.GetFieldsEx().Intersect(_usedMembers.OfType<FieldInfo>()).Select(f =>
 			{
-#if NETSTANDARD1_6
-				var attrs = f.GetCustomAttributes(false).ToList();
-#else
-				var attrs = f.GetCustomAttributesData();
-#endif
-				var attr = attrs.Count > 0 ? attrs.Select(a => "\r\n\t\t" + a.ToString()).Aggregate((a1,a2) => a1 + a2) : "";
-
-				return string.Format(@"{0}
-		public {1} {2};",
+				var attr = "";
+				var ed = mappingSchema.GetEntityDescriptor(type);
+				if (ed != null)
+				{
+					var colum = ed.Columns.FirstOrDefault(x => x.MemberInfo == f);
+					if (colum != null)
+					{
+						attr += "		[Column(" + (string.IsNullOrEmpty(colum.ColumnName) ? "" : "\"" + colum.ColumnName + "\"") + ")]" + Environment.NewLine;
+					}
+					else
+					{
+						attr += "		[NotColumn]" + Environment.NewLine;
+					}
+					if (colum != null && colum.IsPrimaryKey)
+					{
+						attr += "		[PrimaryKey]" + Environment.NewLine;
+					}
+				}
+				return string.Format(@"
+{0}		public {1} {2};",
 					attr,
 					GetTypeName(f.FieldType),
 					MangleName(isUserName, f.Name, "P"));
@@ -572,14 +587,27 @@ namespace LinqToDB.Linq.Builder
 			.Concat(
 				type.GetPropertiesEx().Intersect(_usedMembers.OfType<PropertyInfo>()).Select(p =>
 				{
-#if NETSTANDARD1_6
-					var attrs = p.GetCustomAttributes(false).ToList();
-#else
-					var attrs = p.GetCustomAttributesData();
-#endif
-					return string.Format(@"{0}
-		{3}{1} {2} {{ get; set; }}",
-						attrs.Count > 0 ? attrs.Select(a => "\r\n\t\t" + a.ToString()).Aggregate((a1,a2) => a1 + a2) : "",
+					var attr = "";
+					var ed = mappingSchema.GetEntityDescriptor(type);
+					if (ed != null)
+					{
+						var colum = ed.Columns.FirstOrDefault(x => x.MemberInfo == p);
+						if (colum != null)
+						{
+							attr += "		[Column(" + (string.IsNullOrEmpty(colum.ColumnName) ? "" : "\"" + colum.ColumnName + "\"") + ")]" + Environment.NewLine;
+						}
+						else
+						{
+							attr += "		[NotColumn]" + Environment.NewLine;
+						}
+						if (colum != null && colum.IsPrimaryKey)
+						{
+							attr += "		[PrimaryKey]" + Environment.NewLine;
+						}
+					}
+					return string.Format(@"
+{0}		{3}{1} {2} {{ get; set; }}",
+						attr,
 						GetTypeName(p.PropertyType),
 						MangleName(isUserName, p.Name, "P"),
 						type.IsInterfaceEx() ? "" : "public ");
@@ -611,30 +639,25 @@ namespace LinqToDB.Linq.Builder
 			.ToArray();
 
 			{
-#if NETSTANDARD1_6
-				var attrs = type.GetCustomAttributesEx(false).ToList();
-#else
-				var attrs = type.GetCustomAttributesData();
-#endif
+				var attr = "";
+				var ed = mappingSchema.GetEntityDescriptor(type);
+				if (ed != null)
+				{
+					attr += "	[Table(" + (string.IsNullOrEmpty(ed.TableName) ? "" : "\"" + ed.TableName + "\"") + ")]" + Environment.NewLine;
+				}
 
 				_typeBuilder.AppendFormat(
 					type.IsGenericTypeEx() ?
 @"
-namespace {0}
-{{{8}
-	{6}{7}{1} {2}<{3}>{5}
+{8}	{6}{7}{1} {2}<{3}>{5}
 	{{{4}{9}
 	}}
-}}
 "
 :
 @"
-namespace {0}
-{{{8}
-	{6}{7}{1} {2}{5}
+{8}	{6}{7}{1} {2}{5}
 	{{{4}{9}
 	}}
-}}
 ",
 					MangleName(isUserName, type.Namespace, "T"),
 					type.IsInterfaceEx() ? "interface" : type.IsClassEx() ? "class" : "struct",
@@ -644,12 +667,18 @@ namespace {0}
 					baseClasses.Length == 0 ? "" : " : " + GetTypeNames(baseClasses),
 					type.IsPublicEx() ? "public " : "",
 					type.IsAbstractEx() && !type.IsInterfaceEx() ? "abstract " : "",
-					attrs.Count > 0 ? attrs.Select(a => "\r\n\t" + a.ToString()).Aggregate((a1,a2) => a1 + a2) : "",
+					attr,
 					members.Length > 0 ?
 						(ctors.Count != 0 ? "\r\n" : "") + members.Aggregate((f1,f2) => f1 + "\r\n" + f2) :
 						"");
 			}
 		}
+
+		void OpenNamespace(string nameSpace)
+		{
+
+		}
+		
 
 		string GetTypeNames(IEnumerable<Type> types, string separator = ", ")
 		{
@@ -703,7 +732,12 @@ namespace {0}
 
 		bool IsUserType(Type type)
 		{
-			return type.Namespace == null || SystemNamespaces.All(ns => type.Namespace != ns && !type.Namespace.StartsWith(ns + '.'));
+			return IsUserNamespace(type.Namespace);
+		}
+
+		bool IsUserNamespace(string @namespace)
+		{
+			return @namespace == null || SystemNamespaces.All(ns => @namespace != ns && !@namespace.StartsWith(ns + '.'));
 		}
 
 		string GetTypeName(Type type)
@@ -820,6 +854,22 @@ namespace {0}
 			}
 		}
 
+		void VisitForDataContext(Expression expr)
+		{
+			switch (expr.NodeType)
+			{
+				case ExpressionType.Constant:
+					{
+						var ex = (ConstantExpression)expr;
+						if (ex.Value is IExpressionQuery expressionQuery)
+						{
+							_dataContext = expressionQuery.DataContext;
+						}
+						break;
+					}
+			}
+		}
+
 		readonly HashSet<Type> _usedTypes = new HashSet<Type>();
 
 		void AddType(Type type)
@@ -905,11 +955,29 @@ namespace {0}
 
 		public string GenerateSourceString(Expression expr)
 		{
+			expr.Visit(new Action<Expression>(VisitForDataContext));
 			expr.Visit(new Action<Expression>(VisitMembers));
 			expr.Visit(new Action<Expression>(VisitTypes));
 
-			foreach (var type in _usedTypes.OrderBy(t => t.Namespace).ThenBy(t => t.Name))
-				BuildType(type);
+			foreach (var typeNamespaceList in _usedTypes.OrderBy(t => t.Namespace).GroupBy(x => x.Namespace))
+			{
+				if (typeNamespaceList.Any(type =>
+				{
+					return (!IsUserType(type) ||
+							IsAnonymous(type) ||
+							type.AssemblyEx() == GetType().AssemblyEx() ||
+							type.IsGenericTypeEx() && type.GetGenericTypeDefinition() != type);
+				}))
+					continue;
+				_typeBuilder.AppendLine("namespace " + MangleName(IsUserNamespace(typeNamespaceList.Key), typeNamespaceList.Key, "T"));
+				_typeBuilder.AppendLine("{");
+
+				foreach (var type in typeNamespaceList.OrderBy(t => t.Name))
+				{
+					BuildType(type, _dataContext.MappingSchema);
+				}
+				_typeBuilder.AppendLine("}");
+			}
 
 			expr.Visit(BuildExpression);
 
@@ -924,16 +992,16 @@ using System;
 using System.Linq;
 using System.Linq.Expressions;
 using LinqToDB;
-
 using NUnit.Framework;
+
 {0}
 namespace Tests.UserTests
 {{
 	[TestFixture]
 	public class UserTest : TestBase
 	{{
-		[Test, DataContextSource]
-		public void Test(string context)
+		[Test]
+		public void Test([DataSources(ProviderName.SQLite)] string context)
 		{{
 			// {1}
 			using (var db = GetDataContext(context))
