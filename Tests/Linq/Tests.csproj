@@ -13,6 +13,15 @@
 	</PropertyGroup>
 
 	<ItemGroup>
+		<Reference Include="FastExpressionCompiler" Condition="'$(TargetFramework)' == 'net46'">
+			<HintPath>..\..\Redist\FastExpressionCompiler\net45\FastExpressionCompiler.dll</HintPath>
+		</Reference>
+		<Reference Include="FastExpressionCompiler" Condition="'$(TargetFramework)' == 'netcoreapp2.0'">
+			<HintPath>..\..\Redist\FastExpressionCompiler\netstandard2.0\FastExpressionCompiler.dll</HintPath>
+		</Reference>
+	</ItemGroup>
+	
+	<ItemGroup>
 		<Service Include="{82a7f48d-3b50-4b1e-b82e-3ada8210c358}" />
 
 		<Compile Remove="DataProvider\DB2Tests.cs" Condition="'$(Configuration)' == 'AppVeyor' OR '$(Configuration)' == 'Travis'" />
