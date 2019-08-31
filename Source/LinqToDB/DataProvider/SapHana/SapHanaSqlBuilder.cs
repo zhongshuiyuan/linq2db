@@ -115,11 +115,11 @@ namespace LinqToDB.DataProvider.SapHana
 				case DataType.NVarChar:
 				case DataType.VarChar:
 				case DataType.VarBinary:
-					if (type.Length == int.MaxValue || type.Length < 0)
+					if (type.Length == null || type.Length > 5000 || type.Length < 1)
 					{
 						StringBuilder
 							.Append(type.DataType)
-							.Append("(Max)");
+							.Append("(5000)");
 						return;
 					}
 					break;
@@ -132,7 +132,7 @@ namespace LinqToDB.DataProvider.SapHana
 			if (!statement.IsUpdate())
 				base.BuildFromClause(statement, selectQuery);
 			if (selectQuery.From.Tables.Count == 0)
-				StringBuilder.Append("FROM DUMMY");
+				StringBuilder.Append("FROM DUMMY").AppendLine();
 		}
 
 		public static bool TryConvertParameterSymbol { get; set; }
@@ -187,9 +187,6 @@ namespace LinqToDB.DataProvider.SapHana
 						var name = value.ToString();
 						if (name.Length > 0 && name[0] == '\"')
 							return value;
-
-						if (name.IndexOf('.') > 0)
-							value = string.Join("\".\"", name.Split('.'));
 
 						return "\"" + value + "\"";
 					}

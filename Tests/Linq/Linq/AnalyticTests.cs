@@ -1,16 +1,26 @@
-﻿namespace Tests.Linq
+﻿using System;
+using System.Diagnostics;
+
+namespace Tests.Linq
 {
+	using System;
 	using System.Linq;
 
 	using LinqToDB;
+	using LinqToDB.Mapping;
 	using NUnit.Framework;
 
 	[TestFixture]
 	public class AnalyticTests : TestBase
 	{
-		[Test, IncludeDataContextSource(true, ProviderName.Oracle, ProviderName.OracleManaged, ProviderName.OracleNative,
-			ProviderName.SqlServer2012, ProviderName.SqlServer2014, ProviderName.PostgreSQL)]
-		public void Test(string context)
+		[Test]
+		public void Test(
+			[IncludeDataSources(
+				true,
+				TestProvName.AllOracle,
+				TestProvName.AllSqlServer2012Plus,
+				TestProvName.AllPostgreSQL)]
+			string context)
 		{
 			using (var db = GetDataContext(context))
 			{
@@ -47,9 +57,14 @@
 			}
 		}
 
-		[Test, IncludeDataContextSource(true, ProviderName.Oracle, ProviderName.OracleManaged, ProviderName.OracleNative,
-			 ProviderName.SqlServer2012, ProviderName.SqlServer2014, ProviderName.PostgreSQL)]
-		public void TestSubqueryOptimization(string context)
+		[Test]
+		public void TestSubqueryOptimization(
+			[IncludeDataSources(
+				true,
+				TestProvName.AllOracle,
+				TestProvName.AllSqlServer2012Plus,
+				TestProvName.AllPostgreSQL)]
+			string context)
 		{
 			using (var db = GetDataContext(context))
 			{
@@ -72,8 +87,8 @@
 			}
 		}
 
-		[Test, IncludeDataContextSource(ProviderName.Oracle, ProviderName.OracleManaged, ProviderName.OracleNative)]
-		public void TestExtensionsOracle(string context)
+		[Test]
+		public void TestExtensionsOracle([IncludeDataSources(true, TestProvName.AllOracle)] string context)
 		{
 			using (var db = GetDataContext(context))
 			{
@@ -112,8 +127,12 @@
 			}
 		}
 
-		[Test, IncludeDataContextSource(ProviderName.SqlServer2000, ProviderName.SqlServer2005, ProviderName.SqlServer2008, ProviderName.SqlServer2012, ProviderName.Oracle, ProviderName.OracleNative)]
-		public void TestAvg(string context)
+		[ActiveIssue(
+			Configuration         = TestProvName.AllOracle,
+			Details               = "Specified cast is not valid.",
+			SkipForNonLinqService = true)]
+		[Test]
+		public void TestAvg([IncludeDataSources(true, TestProvName.AllSqlServer, TestProvName.AllOracle)] string context)
 		{
 			using (var db = GetDataContext(context))
 			{
@@ -139,8 +158,9 @@
 			}
 		}
 
-		[Test, IncludeDataContextSource(ProviderName.Oracle, ProviderName.OracleManaged, ProviderName.OracleNative)]
-		public void TestAvgOracle(string context)
+		[Test]
+		public void TestAvgOracle([IncludeDataSources(TestProvName.AllOracle)]
+			string context)
 		{
 			using (var db = GetDataContext(context))
 			{
@@ -218,8 +238,9 @@
 			}
 		}
 
-		[Test, IncludeDataContextSource(ProviderName.Oracle, ProviderName.OracleManaged, ProviderName.OracleNative)]
-		public void TestCorrOracle(string context)
+		[Test]
+		public void TestCorrOracle([IncludeDataSources(TestProvName.AllOracle)]
+			string context)
 		{
 			using (var db = GetDataContext(context))
 			{
@@ -260,8 +281,8 @@
 			}
 		}
 
-		[Test, IncludeDataContextSource(true, ProviderName.Oracle, ProviderName.OracleManaged, ProviderName.OracleNative)]
-		public void TestCountOracle(string context)
+		[Test]
+		public void TestCountOracle([IncludeDataSources(true, TestProvName.AllOracle)] string context)
 		{
 			using (var db = GetDataContext(context))
 			{
@@ -289,8 +310,8 @@
 			}
 		}
 
-		[Test, IncludeDataContextSource(ProviderName.SqlServer2000, ProviderName.SqlServer2005, ProviderName.SqlServer2008, ProviderName.SqlServer2012, ProviderName.Oracle, ProviderName.OracleManaged)]
-		public void TestCount(string context)
+		[Test]
+		public void TestCount([IncludeDataSources(true, TestProvName.AllSqlServer, TestProvName.AllOracle)] string context)
 		{
 			using (var db = GetDataContext(context))
 			{
@@ -318,8 +339,9 @@
 			}
 		}
 
-		[Test, IncludeDataContextSource(ProviderName.Oracle, ProviderName.OracleManaged, ProviderName.OracleNative)]
-		public void TestCovarPopOracle(string context)
+		[Test]
+		public void TestCovarPopOracle([IncludeDataSources(TestProvName.AllOracle)]
+			string context)
 		{
 			using (var db = GetDataContext(context))
 			{
@@ -354,8 +376,9 @@
 			}
 		}
 
-		[Test, IncludeDataContextSource(ProviderName.Oracle, ProviderName.OracleManaged, ProviderName.OracleNative)]
-		public void TestCovarSampOracle(string context)
+		[Test]
+		public void TestCovarSampOracle([IncludeDataSources(TestProvName.AllOracle)]
+			string context)
 		{
 			using (var db = GetDataContext(context))
 			{
@@ -390,8 +413,9 @@
 			}
 		}
 
-		[Test, IncludeDataContextSource(ProviderName.Oracle, ProviderName.OracleManaged, ProviderName.OracleNative)]
-		public void TestCumeDistOracle(string context)
+		[Test]
+		public void TestCumeDistOracle([IncludeDataSources(TestProvName.AllOracle)]
+			string context)
 		{
 			using (var db = GetDataContext(context))
 			{
@@ -417,8 +441,8 @@
 			}
 		}
 
-		[Test, IncludeDataContextSource(true, ProviderName.Oracle, ProviderName.OracleManaged, ProviderName.OracleNative)]
-		public void TestDenseRankOracle(string context)
+		[Test]
+		public void TestDenseRankOracle([IncludeDataSources(true, TestProvName.AllOracle)] string context)
 		{
 			using (var db = GetDataContext(context))
 			{
@@ -443,8 +467,8 @@
 			}
 		}
 
-		[Test, IncludeDataContextSource(true, ProviderName.Oracle, ProviderName.OracleManaged, ProviderName.OracleNative)]
-		public void TestFirstValueOracle(string context)
+		[Test]
+		public void TestFirstValueOracle([IncludeDataSources(true, TestProvName.AllOracle)] string context)
 		{
 			using (var db = GetDataContext(context))
 			{
@@ -463,8 +487,8 @@
 			}
 		}
 
-		[Test, IncludeDataContextSource(true, ProviderName.Oracle, ProviderName.OracleManaged, ProviderName.OracleNative)]
-		public void TestLastValueOracle(string context)
+		[Test]
+		public void TestLastValueOracle([IncludeDataSources(true, TestProvName.AllOracle)] string context)
 		{
 			using (var db = GetDataContext(context))
 			{
@@ -483,8 +507,8 @@
 			}
 		}
 
-		[Test, IncludeDataContextSource(true, ProviderName.Oracle, ProviderName.OracleManaged, ProviderName.OracleNative)]
-		public void TestLagOracle(string context)
+		[Test]
+		public void TestLagOracle([IncludeDataSources(true, TestProvName.AllOracle)] string context)
 		{
 			using (var db = GetDataContext(context))
 			{
@@ -502,8 +526,8 @@
 			}
 		}
 
-		[Test, IncludeDataContextSource(true, ProviderName.Oracle, ProviderName.OracleManaged, ProviderName.OracleNative)]
-		public void TestLeadOracle(string context)
+		[Test]
+		public void TestLeadOracle([IncludeDataSources(true, TestProvName.AllOracle)] string context)
 		{
 			using (var db = GetDataContext(context))
 			{
@@ -522,8 +546,8 @@
 			}
 		}
 
-		[Test, IncludeDataContextSource(true, ProviderName.Oracle, ProviderName.OracleManaged, ProviderName.OracleNative)]
-		public void TestListAggOracle(string context)
+		[Test]
+		public void TestListAggOracle([IncludeDataSources(true, TestProvName.AllOracle)] string context)
 		{
 			using (var db = GetDataContext(context))
 			{
@@ -546,8 +570,8 @@
 			}
 		}
 
-		[Test, IncludeDataContextSource(true, ProviderName.Oracle, ProviderName.OracleManaged, ProviderName.OracleNative)]
-		public void TestMaxOracle(string context)
+		[Test]
+		public void TestMaxOracle([IncludeDataSources(true, TestProvName.AllOracle)] string context)
 		{
 			using (var db = GetDataContext(context))
 			{
@@ -584,8 +608,8 @@
 			}
 		}
 
-		[Test, IncludeDataContextSource(ProviderName.SqlServer2000, ProviderName.SqlServer2005, ProviderName.SqlServer2008, ProviderName.SqlServer2012, ProviderName.Oracle)]
-		public void TestMax(string context)
+		[Test]
+		public void TestMax([IncludeDataSources(true, TestProvName.AllOracle, TestProvName.AllSqlServer)] string context)
 		{
 			using (var db = GetDataContext(context))
 			{
@@ -611,8 +635,8 @@
 			}
 		}
 
-		[Test, IncludeDataContextSource(true, ProviderName.Oracle, ProviderName.OracleManaged, ProviderName.OracleNative)]
-		public void TestMedianOracle(string context)
+		[Test]
+		public void TestMedianOracle([IncludeDataSources(true, TestProvName.AllOracle)] string context)
 		{
 			using (var db = GetDataContext(context))
 			{
@@ -644,8 +668,8 @@
 			}
 		}
 
-		[Test, IncludeDataContextSource(true, ProviderName.Oracle, ProviderName.OracleManaged, ProviderName.OracleNative)]
-		public void TestMinOracle(string context)
+		[Test]
+		public void TestMinOracle([IncludeDataSources(true, TestProvName.AllOracle)] string context)
 		{
 			using (var db = GetDataContext(context))
 			{
@@ -672,8 +696,8 @@
 			}
 		}
 
-		[Test, IncludeDataContextSource(ProviderName.SqlServer2000, ProviderName.SqlServer2005, ProviderName.SqlServer2008, ProviderName.SqlServer2012, ProviderName.Oracle, ProviderName.OracleManaged)]
-		public void TestMin(string context)
+		[Test]
+		public void TestMin([IncludeDataSources(true, TestProvName.AllOracle, TestProvName.AllSqlServer)] string context)
 		{
 			using (var db = GetDataContext(context))
 			{
@@ -699,8 +723,8 @@
 			}
 		}
 
-		[Test, IncludeDataContextSource(true, ProviderName.Oracle, ProviderName.OracleManaged, ProviderName.OracleNative)]
-		public void TestNthValueOracle(string context)
+		[Test]
+		public void TestNthValueOracle([IncludeDataSources(true, TestProvName.AllOracle)] string context)
 		{
 			using (var db = GetDataContext(context))
 			{
@@ -726,8 +750,9 @@
 			}
 		}
 
-		[Test, IncludeDataContextSource(true, ProviderName.Oracle, ProviderName.OracleManaged, ProviderName.OracleNative)]
-		public void TestNTileOracle(string context)
+		[Test]
+		public void TestNTileOracle([IncludeDataSources(true, TestProvName.AllOracle)]
+			string context)
 		{
 			using (var db = GetDataContext(context))
 			{
@@ -744,8 +769,8 @@
 			}
 		}
 
-		[Test, IncludeDataContextSource(true, ProviderName.Oracle, ProviderName.OracleManaged, ProviderName.OracleNative)]
-		public void TestPercentileContOracle(string context)
+		[Test]
+		public void TestPercentileContOracle([IncludeDataSources(true, TestProvName.AllOracle)] string context)
 		{
 			using (var db = GetDataContext(context))
 			{
@@ -774,10 +799,10 @@
 			}
 		}
 
-		[Test, IncludeDataContextSource(true, ProviderName.Oracle, ProviderName.OracleManaged, ProviderName.OracleNative)]
-		public void TestPercentileDiscOracle(string Discext)
+		[Test]
+		public void TestPercentileDiscOracle([IncludeDataSources(true, TestProvName.AllOracle)] string context)
 		{
-			using (var db = GetDataContext(Discext))
+			using (var db = GetDataContext(context))
 			{
 				var q =
 					from p in db.Parent
@@ -804,8 +829,9 @@
 			}
 		}
 
-		[Test, IncludeDataContextSource(false, ProviderName.Oracle, ProviderName.OracleManaged, ProviderName.OracleNative)]
-		public void TestPercentRankOracle(string context)
+		[Test]
+		public void TestPercentRankOracle([IncludeDataSources(TestProvName.AllOracle)]
+			string context)
 		{
 			using (var db = GetDataContext(context))
 			{
@@ -830,8 +856,9 @@
 			}
 		}
 
-		[Test, IncludeDataContextSource(ProviderName.Oracle, ProviderName.OracleManaged, ProviderName.OracleNative)]
-		public void TestPercentRatioToReportOracle(string context)
+		[Test]
+		public void TestPercentRatioToReportOracle([IncludeDataSources(TestProvName.AllOracle)]
+			string context)
 		{
 			using (var db = GetDataContext(context))
 			{
@@ -847,8 +874,9 @@
 			}
 		}
 
-		[Test, IncludeDataContextSource(true, ProviderName.Oracle, ProviderName.OracleManaged, ProviderName.OracleNative)]
-		public void TestRowNumberOracle(string context)
+		[Test]
+		public void TestRowNumberOracle([IncludeDataSources(true, TestProvName.AllOracle)]
+			string context)
 		{
 			using (var db = GetDataContext(context))
 			{
@@ -864,8 +892,10 @@
 			}
 		}
 
-		[Test, IncludeDataContextSource(true, ProviderName.Oracle, ProviderName.OracleManaged, ProviderName.OracleNative)]
-		public void TestRankOracle(string context)
+		[Test]
+		public void TestRankOracle([IncludeDataSources(true,
+			ProviderName.Oracle, ProviderName.OracleManaged, ProviderName.OracleNative)]
+			string context)
 		{
 			using (var db = GetDataContext(context))
 			{
@@ -891,8 +921,10 @@
 			}
 		}
 
-		[Test, IncludeDataContextSource(ProviderName.Oracle, ProviderName.OracleManaged, ProviderName.OracleNative)]
-		public void TestRegrOracle(string context)
+		[Test]
+		public void TestRegrOracle([IncludeDataSources(
+			true, ProviderName.Oracle, ProviderName.OracleManaged, ProviderName.OracleNative)]
+			string context)
 		{
 			using (var db = GetDataContext(context))
 			{
@@ -917,8 +949,9 @@
 			}
 		}
 
-		[Test, IncludeDataContextSource(ProviderName.Oracle, ProviderName.OracleManaged, ProviderName.OracleNative)]
-		public void TestStdDevOracle(string context)
+		[Test]
+		public void TestStdDevOracle([IncludeDataSources(TestProvName.AllOracle)]
+			string context)
 		{
 			using (var db = GetDataContext(context))
 			{
@@ -945,8 +978,8 @@
 			}
 		}
 
-		[Test, IncludeDataContextSource(ProviderName.SqlServer2000, ProviderName.SqlServer2005, ProviderName.SqlServer2008, ProviderName.SqlServer2012, ProviderName.Oracle, ProviderName.OracleManaged, ProviderName.OracleNative)]
-		public void TestStdDev(string context)
+		[Test]
+		public void TestStdDev([IncludeDataSources(TestProvName.AllSqlServer, TestProvName.AllOracle)] string context)
 		{
 			using (var db = GetDataContext(context))
 			{
@@ -972,8 +1005,9 @@
 			}
 		}
 
-		[Test, IncludeDataContextSource(ProviderName.Oracle, ProviderName.OracleManaged, ProviderName.OracleNative)]
-		public void TestStdDevPopOracle(string context)
+		[Test]
+		public void TestStdDevPopOracle([IncludeDataSources(TestProvName.AllOracle)]
+			string context)
 		{
 			using (var db = GetDataContext(context))
 			{
@@ -1007,8 +1041,9 @@
 			}
 		}
 
-		[Test, IncludeDataContextSource(ProviderName.Oracle, ProviderName.OracleManaged, ProviderName.OracleNative)]
-		public void TestStdDevSampOracle(string context)
+		[Test]
+		public void TestStdDevSampOracle([IncludeDataSources(TestProvName.AllOracle)]
+			string context)
 		{
 			using (var db = GetDataContext(context))
 			{
@@ -1042,8 +1077,10 @@
 			}
 		}
 
-		[Test, IncludeDataContextSource(true, ProviderName.Oracle, ProviderName.OracleManaged, ProviderName.OracleNative)]
-		public void TestSumOracle(string context)
+		[Test]
+		public void TestSumOracle([IncludeDataSources(true,
+			ProviderName.Oracle, ProviderName.OracleManaged, ProviderName.OracleNative)]
+			string context)
 		{
 			using (var db = GetDataContext(context))
 			{
@@ -1072,8 +1109,9 @@
 			}
 		}
 
-		[Test, IncludeDataContextSource(ProviderName.Oracle, ProviderName.OracleManaged, ProviderName.OracleNative)]
-		public void TestVarPopOracle(string context)
+		[Test]
+		public void TestVarPopOracle([IncludeDataSources(TestProvName.AllOracle)]
+			string context)
 		{
 			using (var db = GetDataContext(context))
 			{
@@ -1107,8 +1145,9 @@
 			}
 		}
 
-		[Test, IncludeDataContextSource(ProviderName.Oracle, ProviderName.OracleManaged, ProviderName.OracleNative)]
-		public void TestVarSampOracle(string context)
+		[Test]
+		public void TestVarSampOracle([IncludeDataSources(TestProvName.AllOracle)]
+			string context)
 		{
 			using (var db = GetDataContext(context))
 			{
@@ -1143,8 +1182,8 @@
 		}
 
 
-		[Test, IncludeDataContextSource(ProviderName.OracleManaged, ProviderName.OracleNative)]
-		public void TestVarianceOracle(string context)
+		[Test]
+		public void TestVarianceOracle([IncludeDataSources(TestProvName.AllOracle)] string context)
 		{
 			using (var db = GetDataContext(context))
 			{
@@ -1190,8 +1229,8 @@
 			}
 		}
 
-		[Test, IncludeDataContextSource(ProviderName.Oracle, ProviderName.OracleManaged, ProviderName.OracleNative)]
-		public void TestKeepFirstOracle(string context)
+		[Test]
+		public void TestKeepFirstOracle([IncludeDataSources(true, TestProvName.AllOracle)] string context)
 		{
 			using (var db = GetDataContext(context))
 			{
@@ -1210,8 +1249,8 @@
 			}
 		}
 
-		[Test, IncludeDataContextSource(ProviderName.Oracle, ProviderName.OracleManaged, ProviderName.OracleNative)]
-		public void TestKeepLastOracle(string context)
+		[Test]
+		public void TestKeepLastOracle([IncludeDataSources(true, TestProvName.AllOracle)] string context)
 		{
 			using (var db = GetDataContext(context))
 			{
@@ -1230,5 +1269,383 @@
 			}
 		}
 
+		[Test]
+		public void NestedQueries([IncludeDataSources(true, TestProvName.AllSqlServer2008Plus, ProviderName.Oracle)]string context)
+		{
+			using (var db = GetDataContext(context))
+			{
+				var q1 =
+					from p in db.Parent.Where(p => p.ParentID > 0).AsSubQuery()
+					select new
+					{
+						p.ParentID,
+						MaxValue = Sql.Ext.Max(p.Value1).Over().PartitionBy(p.ParentID).ToValue(),
+					};
+
+				var q2 = from q in q1.AsSubQuery()
+					select new
+					{
+						q.ParentID,
+						MaxValue = Sql.Ext.Min(q.MaxValue).Over().PartitionBy(q.ParentID).ToValue(),
+					};
+
+				Console.WriteLine(q1.ToString());
+				Console.WriteLine(q2.ToString());
+
+				Assert.AreEqual(2, q1.EnumQueries().Count());
+				Assert.AreEqual(3, q2.EnumQueries().Count());
+			}
+		}
+
+		[Table]
+		class Position
+		{
+			[Column] public int  Group { get; set; }
+			[Column] public int  Order { get; set; }
+			[Column] public int? Id    { get; set; }
+
+			public static Position[] TestData = new []
+			{
+				new Position() { Id = 5,    Group = 7, Order = 10 },
+				new Position() { Id = 6,    Group = 7, Order = 20 },
+				new Position() { Id = null, Group = 7, Order = 30 },
+				new Position() { Id = null, Group = 7, Order = 40 }
+			};
+		}
+
+		// Tests that default LAG behavior matches RESPECT NULLS as per spec, so we don't need to generate RESPECT NULLS token
+		// TODO: needs sqllite 3.25
+		// TODO: needs mysql 8.0/mariadb 10.2
+		// also syntax should be altered (mariadb doesn't support defaults, mysql supports Sql.Nulls.Ignore in other place)
+		[ActiveIssue(Configurations = new[] { TestProvName.AllSQLite, TestProvName.AllMySql })]
+		[Test]
+		public void Issue1732Lag([DataSources(
+			TestProvName.AllSqlServer2008Minus,
+			TestProvName.AllSybase,
+			ProviderName.SqlCe,
+			ProviderName.Access,
+			ProviderName.Firebird)] string context)
+		{
+			using (var db = GetDataContext(context))
+			using (var table = db.CreateLocalTable(Position.TestData))
+			{
+				var group = 7;
+
+				var q =
+					from p in db.GetTable<Position>()
+					where p.Group == @group
+					select new
+					{
+						Id         = p.Id,
+						PreviousId = (int?)Sql.Ext.Lag(p.Id, Sql.Nulls.Respect, 1, -1).Over().OrderBy(p.Order).ToValue(),
+
+					};
+
+				var res = q.ToArray();
+
+				Assert.AreEqual(4, res.Length);
+
+				// BTW, order from original query behaves differently for
+				// Oracle, PostgreSQL, DB2 vs Informix, SQL Server
+				Assert.AreEqual(5, res[0].Id);
+				Assert.AreEqual(-1, res[0].PreviousId);
+				Assert.AreEqual(6, res[1].Id);
+				Assert.AreEqual(5, res[1].PreviousId);
+				Assert.IsNull(res[2].Id);
+				Assert.AreEqual(6, res[2].PreviousId);
+				Assert.IsNull(res[3].Id);
+				Assert.IsNull(res[3].PreviousId);
+			}
+		}
+
+		// TODO: needs sqllite 3.25
+		// TODO: needs mysql 8.0/mariadb 10.2
+		[ActiveIssue(Configurations = new[] { TestProvName.AllSQLite, TestProvName.AllMySql })]
+		[Test]
+		public void Issue1732Lead([DataSources(
+			TestProvName.AllSqlServer2008Minus,
+			TestProvName.AllSybase,
+			ProviderName.SqlCe,
+			ProviderName.Access,
+			ProviderName.Firebird)] string context)
+		{
+			using (var db = GetDataContext(context))
+			using (var table = db.CreateLocalTable(Position.TestData))
+			{
+				var group = 7;
+
+				var q =
+					from p in db.GetTable<Position>()
+					where p.Group == @group
+					select new
+					{
+						Id         = p.Id,
+						PreviousId = (int?)Sql.Ext.Lead(p.Id, Sql.Nulls.Respect, 1, -1).Over().OrderBy(p.Order).ToValue(),
+
+					};
+
+				var res = q.ToArray();
+
+				Assert.AreEqual(4, res.Length);
+
+				Assert.AreEqual(5, res[0].Id);
+				Assert.AreEqual(6, res[0].PreviousId);
+				Assert.AreEqual(6, res[1].Id);
+				Assert.IsNull(res[1].PreviousId);
+				Assert.IsNull(res[2].Id);
+				Assert.IsNull(res[2].PreviousId);
+				Assert.IsNull(res[3].Id);
+				Assert.AreEqual(-1, res[3].PreviousId);
+			}
+		}
+
+		[ActiveIssue(Configurations = new[] { TestProvName.AllSQLite, TestProvName.AllMySql })]
+		[Test]
+		public void Issue1732FirstValue([DataSources(
+			TestProvName.AllSqlServer2008Minus,
+			TestProvName.AllSybase,
+			ProviderName.SqlCe,
+			ProviderName.Access,
+			ProviderName.Firebird)] string context)
+		{
+			using (var db    = GetDataContext(context))
+			using (var table = db.CreateLocalTable(Position.TestData))
+			{
+				var group = 7;
+
+				var q =
+					from p in db.GetTable<Position>()
+					where p.Group == @group
+					select new
+					{
+						Id         = p.Id,
+						PreviousId = (int?)Sql.Ext.FirstValue(p.Id, Sql.Nulls.Respect).Over().OrderByDesc(p.Order).ToValue(),
+
+					};
+
+				var res = q.ToArray();
+
+				Assert.AreEqual(4, res.Length);
+
+				Assert.IsNull(res[0].Id);
+				Assert.IsNull(res[0].PreviousId);
+				Assert.IsNull(res[1].Id);
+				Assert.IsNull(res[1].PreviousId);
+				Assert.AreEqual(6, res[2].Id);
+				Assert.IsNull(res[2].PreviousId);
+				Assert.AreEqual(5, res[3].Id);
+				Assert.IsNull(res[3].PreviousId);
+			}
+		}
+
+		[ActiveIssue(Configurations = new[] { TestProvName.AllSQLite, TestProvName.AllMySql })]
+		[Test]
+		public void Issue1732LastValue([DataSources(
+			TestProvName.AllSqlServer2008Minus,
+			TestProvName.AllSybase,
+			ProviderName.SqlCe,
+			ProviderName.Access,
+			ProviderName.Firebird)] string context)
+		{
+			using (var db    = GetDataContext(context))
+			using (var table = db.CreateLocalTable(Position.TestData))
+			{
+				var group = 7;
+
+				var q =
+					from p in db.GetTable<Position>()
+					where p.Group == @group
+					select new
+					{
+						Id         = p.Id,
+						PreviousId = (int?)Sql.Ext.LastValue(p.Id, Sql.Nulls.Respect).Over().OrderBy(p.Order).ToValue(),
+
+					};
+
+				var res = q.ToArray();
+
+				Assert.AreEqual(4, res.Length);
+
+				Assert.AreEqual(5, res[0].Id);
+				Assert.AreEqual(5, res[0].PreviousId);
+				Assert.AreEqual(6, res[1].Id);
+				Assert.AreEqual(6, res[1].PreviousId);
+				Assert.IsNull(res[2].Id);
+				Assert.IsNull(res[2].PreviousId);
+				Assert.IsNull(res[3].Id);
+				Assert.IsNull(res[3].PreviousId);
+			}
+		}
+
+		// TODO: pgsql/SAP HANA doesn't support FROM clause
+		[ActiveIssue(Configurations = new[] { TestProvName.AllSQLite, TestProvName.AllMySql, TestProvName.AllPostgreSQL, ProviderName.SapHana })]
+		[Test]
+		public void Issue1732NthValue([DataSources(
+			TestProvName.AllSqlServer,
+			TestProvName.AllSybase,
+			TestProvName.AllPostgreSQL,
+			ProviderName.Informix,
+			ProviderName.SqlCe,
+			ProviderName.Access,
+			ProviderName.Firebird)] string context)
+		{
+			using (var db    = GetDataContext(context))
+			using (var table = db.CreateLocalTable(Position.TestData))
+			{
+				var group = 7;
+
+				var q =
+					from p in db.GetTable<Position>()
+					where p.Group == @group
+					select new
+					{
+						Id         = p.Id,
+						PreviousId = (int?)Sql.Ext.NthValue(p.Id, 2, Sql.From.First, Sql.Nulls.Respect).Over().OrderByDesc(p.Order).ToValue(),
+
+					};
+
+				var res = q.ToArray();
+
+				Assert.AreEqual(4, res.Length);
+
+				Assert.IsNull(res[0].Id);
+				Assert.IsNull(res[0].PreviousId);
+				Assert.IsNull(res[1].Id);
+				Assert.IsNull(res[1].PreviousId);
+				Assert.AreEqual(6, res[2].Id);
+				Assert.IsNull(res[2].PreviousId);
+				Assert.AreEqual(5, res[3].Id);
+				Assert.IsNull(res[3].PreviousId);
+			}
+		}
+
+		[Table]
+		class Issue1799Table1
+		{
+			[Column] public int      EventUser { get; set; }
+			[Column] public int      ProcessID { get; set; }
+			[Column] public DateTime EventTime { get; set; }
+		}
+
+		[Table]
+		class Issue1799Table2
+		{
+			[Column] public int UserId        { get; set; }
+			[Column] public string UserGroups { get; set; }
+		}
+
+		[Table]
+		class Issue1799Table3
+		{
+			[Column] public int    ProcessID   { get; set; }
+			[Column] public string ProcessName { get; set; }
+		}
+
+		// TODO: various issues like old db version, minute datepart translation
+		[ActiveIssue(Configurations = new[] { TestProvName.AllSQLite, TestProvName.AllMySql, TestProvName.AllPostgreSQL, ProviderName.Informix, TestProvName.AllOracle })]
+		[Test]
+		public void Issue1799Test1([DataSources(
+			TestProvName.AllSqlServer2008Minus,
+			TestProvName.AllSybase,
+			ProviderName.SqlCe,
+			ProviderName.Access,
+			ProviderName.Firebird)] string context)
+		{
+			using (var db = GetDataContext(context))
+			using (db.CreateLocalTable<Issue1799Table1>())
+			using (db.CreateLocalTable<Issue1799Table2>())
+			using (db.CreateLocalTable<Issue1799Table3>())
+			{
+				var query =
+					from x in db.GetTable<Issue1799Table1>()
+					select new
+					{
+						User = x.EventUser,
+						Proc = x.ProcessID,
+						Diff = Sql.DateDiff(
+							Sql.DateParts.Minute,
+							Sql.Ext
+								.Lag(x.EventTime, Sql.Nulls.None)
+								.Over()
+								.PartitionBy(x.EventUser, x.ProcessID)
+								.OrderBy(x.EventTime)
+								.ToValue(),
+							x.EventTime),
+					};
+
+				query = query.Where(q => q.Diff > 0 && q.Diff <= 5);
+
+				var finalQuery = from q in query
+								 from u in db.GetTable<Issue1799Table2>().InnerJoin(u => u.UserId == q.User)
+								 from p in db.GetTable<Issue1799Table3>().InnerJoin(p => p.ProcessID == q.Proc)
+								 group q by new { q.User, u.UserGroups, p.ProcessName }
+								 into g
+								 select new
+								 {
+									g.Key.User,
+									g.Key.ProcessName,
+									g.Key.UserGroups,
+									Sum = g.Sum(e => e.Diff) / 60
+								 };
+
+				finalQuery
+					.Take(10)
+					.ToList();
+			}
+		}
+
+		// TODO: various issues like old db version, minute datepart translation
+		[ActiveIssue(Configurations = new[] { TestProvName.AllSQLite, TestProvName.AllMySql, TestProvName.AllPostgreSQL, ProviderName.Informix, TestProvName.AllOracle })]
+		[Test]
+		public void Issue1799Test2([DataSources(
+			TestProvName.AllSqlServer2008Minus,
+			TestProvName.AllSybase,
+			ProviderName.SqlCe,
+			ProviderName.Access,
+			ProviderName.Firebird)] string context)
+		{
+			using (var db = GetDataContext(context))
+			using (db.CreateLocalTable<Issue1799Table1>())
+			using (db.CreateLocalTable<Issue1799Table2>())
+			using (db.CreateLocalTable<Issue1799Table3>())
+			{
+				var query =
+					from x in db.GetTable<Issue1799Table1>()
+					select new
+					{
+						User = x.EventUser,
+						Proc = x.ProcessID,
+						Diff = Sql.DateDiff(
+							Sql.DateParts.Minute,
+							Sql.Ext
+								.Lag(x.EventTime, Sql.Nulls.None)
+								.Over()
+								.PartitionBy(x.EventUser, x.ProcessID)
+								.OrderBy(x.EventTime)
+								.ToValue(),
+							x.EventTime),
+					};
+
+				// this part removed
+				//query = query.Where(q => q.Diff > 0 && q.Diff <= 5);
+
+				var finalQuery = from q in query
+								 from u in db.GetTable<Issue1799Table2>().InnerJoin(u => u.UserId == q.User)
+								 from p in db.GetTable<Issue1799Table3>().InnerJoin(p => p.ProcessID == q.Proc)
+								 group q by new { q.User, u.UserGroups, p.ProcessName }
+								 into g
+								 select new
+								 {
+									 g.Key.User,
+									 g.Key.ProcessName,
+									 g.Key.UserGroups,
+									 Sum = g.Sum(e => e.Diff) / 60
+								 };
+
+				finalQuery
+					.Take(10)
+					.ToList();
+			}
+		}
 	}
 }

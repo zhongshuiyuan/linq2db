@@ -302,7 +302,7 @@ namespace LinqToDB.ServiceModel
 				try
 				{
 					var data = LinqServiceSerializer.Serialize(_queryBatch.ToArray());
-					await client.ExecuteBatchAsync(Configuration, data);
+					await client.ExecuteBatchAsync(Configuration, data).ConfigureAwait(Common.Configuration.ContinueOnCapturedContext);
 				}
 				finally
 				{

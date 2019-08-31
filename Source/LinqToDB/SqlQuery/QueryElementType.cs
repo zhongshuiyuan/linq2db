@@ -39,11 +39,12 @@ namespace LinqToDB.SqlQuery
 			GroupByClause,
 			OrderByClause,
 				OrderByItem,
-			Union,
+			SetOperator,
 
 		WithClause,
 		CteClause,
 		SqlCteTable,
+		SqlRawSqlTable,
 
 		SelectStatement,
 		InsertStatement,

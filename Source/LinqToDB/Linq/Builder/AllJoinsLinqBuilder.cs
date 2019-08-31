@@ -1,9 +1,10 @@
 ﻿using System;
+using System.Linq;
 using System.Linq.Expressions;
-using LinqToDB.Common;
 
 namespace LinqToDB.Linq.Builder
 {
+	using Common;
 	using LinqToDB.Expressions;
 	using SqlQuery;
 
@@ -22,16 +23,8 @@ namespace LinqToDB.Linq.Builder
 
 		protected override IBuildContext BuildMethodCall(ExpressionBuilder builder, MethodCallExpression methodCall, BuildInfo buildInfo)
 		{
-			var outerContext = builder.BuildSequence(new BuildInfo(buildInfo, methodCall.Arguments[0], buildInfo.SelectQuery));
+			var outerContext = builder.BuildSequence(new BuildInfo(buildInfo, methodCall.Arguments[0]));
 			var innerContext = builder.BuildSequence(new BuildInfo(buildInfo, methodCall.Arguments[1], new SelectQuery()));
-
-			outerContext = new SubQueryContext(outerContext);
-			innerContext = new SubQueryContext(innerContext);
-
-			var selector = (LambdaExpression)methodCall.Arguments[methodCall.Arguments.Count - 1].Unwrap();
-
-			outerContext.SetAlias(selector.Parameters[0].Name);
-			innerContext.SetAlias(selector.Parameters[1].Name);
 
 			JoinType joinType;
 			var conditionIndex = 2;
@@ -60,10 +53,34 @@ namespace LinqToDB.Linq.Builder
 					break;
 			}
 
+			if (joinType == JoinType.Right || joinType == JoinType.Full)
+				outerContext = new DefaultIfEmptyBuilder.DefaultIfEmptyContext(buildInfo.Parent, outerContext, null);
+			outerContext = new SubQueryContext(outerContext);
+
+
+			if (joinType == JoinType.Left || joinType == JoinType.Full)
+				innerContext = new DefaultIfEmptyBuilder.DefaultIfEmptyContext(buildInfo.Parent, innerContext, null);
+			innerContext = new SubQueryContext(innerContext);
+
+			var selector = (LambdaExpression)methodCall.Arguments[methodCall.Arguments.Count - 1].Unwrap();
+
+			outerContext.SetAlias(selector.Parameters[0].Name);
+			innerContext.SetAlias(selector.Parameters[1].Name);
+
+			var joinContext = new JoinContext(buildInfo.Parent, selector, outerContext, innerContext)
+#if DEBUG
+			{
+				MethodCall = methodCall
+			}
+#endif
+			;
+
 			if (conditionIndex != -1)
 			{
 				var condition     = (LambdaExpression)methodCall.Arguments[conditionIndex].Unwrap();
-				var conditionExpr = builder.ConvertExpression(condition.Body.Unwrap());
+				var conditionExpr = condition.GetBody(selector.Parameters[0], selector.Parameters[1]);
+
+				conditionExpr = builder.ConvertExpression(conditionExpr);
 
 				var join  = new SqlFromClause.Join(joinType, innerContext.SelectQuery, null, false,
 					Array<SqlFromClause.Join>.Empty);
@@ -71,7 +88,7 @@ namespace LinqToDB.Linq.Builder
 				outerContext.SelectQuery.From.Tables[0].Joins.Add(join.JoinedTable);
 
 				builder.BuildSearchCondition(
-					new ExpressionContext(null, new[] {outerContext, innerContext}, condition),
+					joinContext, 
 					conditionExpr,
 					join.JoinedTable.Condition.Conditions,
 					false);
@@ -81,19 +98,55 @@ namespace LinqToDB.Linq.Builder
 				outerContext.SelectQuery.From.Table(innerContext.SelectQuery);
 			}
 
-			return new SelectContext(buildInfo.Parent, selector, outerContext, innerContext)
-#if DEBUG
-				{
-					MethodCall = methodCall
-				}
-#endif
-				;
+			return joinContext;
 		}
 
 		protected override SequenceConvertInfo Convert(ExpressionBuilder builder, MethodCallExpression methodCall, BuildInfo buildInfo,
 			ParameterExpression param)
 		{
 			return null;
+		}
+
+		class JoinContext : SelectContext
+		{
+			public JoinContext(IBuildContext parent, LambdaExpression lambda, IBuildContext outerContext, IBuildContext innerContext) : base(parent, lambda, outerContext, innerContext)
+			{
+			}
+
+			public IBuildContext OuterContext => Sequence[0];
+			public IBuildContext InnerContext => Sequence[1];
+
+			public override SqlInfo[] ConvertToSql(Expression expression, int level, ConvertFlags flags)
+			{
+				SqlInfo[] result = null;
+
+				if (expression != null)
+				{
+					var root = expression.GetRootObject(Builder.MappingSchema);
+
+					if (root.NodeType == ExpressionType.Parameter && root == Lambda.Parameters[1])
+					{
+						result = base.ConvertToSql(expression, level, flags);
+
+						// we need exact column from InnerContext
+						result = result.Select(s =>
+							{
+								var idx = InnerContext.SelectQuery.Select.Add(s.Sql);
+								return new SqlInfo(s.MemberChain)
+								{
+									Index = idx, Sql = InnerContext.SelectQuery.Select.Columns[idx],
+									Query = InnerContext.SelectQuery
+								};
+							})
+							.ToArray();
+					}
+				}
+
+				if (result == null)
+					result = base.ConvertToSql(expression, level, flags);
+
+				return result;
+			}
 		}
 	}
 }

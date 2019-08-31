@@ -27,6 +27,7 @@ namespace LinqToDB.Linq.Builder
 
 #if DEBUG
 		public string _sqlQueryText => SelectQuery?.SqlText ?? "";
+		public string Path => this.GetPath();
 #endif
 
 		public IBuildContext     Parent      { get; set; }
@@ -65,6 +66,10 @@ namespace LinqToDB.Linq.Builder
 
 		public virtual void SetAlias(string alias)
 		{
+			if (SelectQuery.Select.Columns.Count == 1)
+			{
+				SelectQuery.Select.Columns[0].Alias = alias;
+			}
 		}
 
 		public virtual ISqlExpression GetSubQuery(IBuildContext context)

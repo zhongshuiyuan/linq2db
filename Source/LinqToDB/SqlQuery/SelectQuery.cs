@@ -30,15 +30,16 @@ namespace LinqToDB.SqlQuery
 		}
 
 		internal void Init(
-			SqlSelectClause         select,
-			SqlFromClause           from,
-			SqlWhereClause          where,
-			SqlGroupByClause        groupBy,
-			SqlWhereClause          having,
-			SqlOrderByClause        orderBy,
-			List<SqlUnion>          unions,
-			SelectQuery          parentSelect,
-			bool                 parameterDependent)
+			SqlSelectClause        select,
+			SqlFromClause          from,
+			SqlWhereClause         where,
+			SqlGroupByClause       groupBy,
+			SqlWhereClause         having,
+			SqlOrderByClause       orderBy,
+			List<SqlSetOperator>   setOparators,
+			List<ISqlExpression[]> uniqueKeys,
+			SelectQuery            parentSelect,
+			bool                   parameterDependent)
 		{
 			Select               = select;
 			From                 = from;
@@ -46,9 +47,12 @@ namespace LinqToDB.SqlQuery
 			GroupBy              = groupBy;
 			Having               = having;
 			OrderBy              = orderBy;
-			_unions              = unions;
+			_setOperators        = setOparators;
 			ParentSelect         = parentSelect;
 			IsParameterDependent = parameterDependent;
+
+			if (uniqueKeys != null)
+				UniqueKeys.AddRange(uniqueKeys);
 
 			foreach (var col in select.Columns)
 				col.Parent = this;
@@ -71,24 +75,38 @@ namespace LinqToDB.SqlQuery
 		private List<object> _properties;
 		public  List<object>  Properties => _properties ?? (_properties = new List<object>());
 
-		public SelectQuery ParentSelect         { get; set; }
+		public SelectQuery    ParentSelect         { get; set; }
+		public bool           IsSimple => !Select.HasModifier && Where.IsEmpty && GroupBy.IsEmpty && Having.IsEmpty && OrderBy.IsEmpty;
+		public bool           IsParameterDependent { get; set; }
 
-		public bool IsSimple => !Select.HasModifier && Where.IsEmpty && GroupBy.IsEmpty && Having.IsEmpty && OrderBy.IsEmpty;
+		/// <summary>
+		/// Gets or sets flag when sub-query can be removed during optimization.
+		/// </summary>
+		public bool               DoNotRemove         { get; set; }
 
-		public bool               IsParameterDependent { get; set; }
+		private List<ISqlExpression[]> _uniqueKeys;
+
+		/// <summary>
+		/// Contains list of columns that build unique key for this sub-query.
+		/// Used in JoinOptimizer for safely removing sub-query from resulting SQL.
+		/// </summary>
+		public  List<ISqlExpression[]>  UniqueKeys   => _uniqueKeys ?? (_uniqueKeys = new List<ISqlExpression[]>());
+
+		public  bool                    HasUniqueKeys => _uniqueKeys != null && _uniqueKeys.Count > 0;
+
 
 		#endregion
 
 		#region Union
 
-		private List<SqlUnion> _unions;
-		public  List<SqlUnion>  Unions   => _unions ?? (_unions = new List<SqlUnion>());
+		private List<SqlSetOperator> _setOperators;
+		public  List<SqlSetOperator>  SetOperators => _setOperators ?? (_setOperators = new List<SqlSetOperator>());
 
-		public  bool            HasUnion => _unions != null && _unions.Count > 0;
+		public  bool            HasSetOperators    => _setOperators != null && _setOperators.Count > 0;
 
 		public void AddUnion(SelectQuery union, bool isAll)
 		{
-			Unions.Add(new SqlUnion(union, isAll));
+			SetOperators.Add(new SqlSetOperator(union, isAll ? SetOperation.UnionAll : SetOperation.Union));
 		}
 
 		#endregion
@@ -115,6 +133,9 @@ namespace LinqToDB.SqlQuery
 			OrderBy = new SqlOrderByClause(this, clone.OrderBy, objectTree, doClone);
 
 			IsParameterDependent = clone.IsParameterDependent;
+
+			if (clone.HasUniqueKeys)
+				UniqueKeys.AddRange(clone.UniqueKeys.Select(uk => uk.Select(e => (ISqlExpression)e.Clone(objectTree, doClone)).ToArray()));
 
 			new QueryVisitor().Visit(this, expr =>
 			{
@@ -235,7 +256,7 @@ namespace LinqToDB.SqlQuery
 				return this;
 
 			if (!objectTree.TryGetValue(this, out var clone))
-				clone = new SelectQuery(this, objectTree, doClone);
+				clone = new SelectQuery(this, objectTree, doClone) { DoNotRemove = this.DoNotRemove };
 
 			return clone;
 		}
@@ -244,18 +265,23 @@ namespace LinqToDB.SqlQuery
 
 		#region ISqlExpressionWalkable Members
 
-		public ISqlExpression Walk(bool skipColumns, Func<ISqlExpression,ISqlExpression> func)
+		public ISqlExpression Walk(WalkOptions options, Func<ISqlExpression,ISqlExpression> func)
 		{
-			((ISqlExpressionWalkable)Select) .Walk(skipColumns, func);
-			((ISqlExpressionWalkable)From)   .Walk(skipColumns, func);
-			((ISqlExpressionWalkable)Where)  .Walk(skipColumns, func);
-			((ISqlExpressionWalkable)GroupBy).Walk(skipColumns, func);
-			((ISqlExpressionWalkable)Having) .Walk(skipColumns, func);
-			((ISqlExpressionWalkable)OrderBy).Walk(skipColumns, func);
+			((ISqlExpressionWalkable)Select) .Walk(options, func);
+			((ISqlExpressionWalkable)From)   .Walk(options, func);
+			((ISqlExpressionWalkable)Where)  .Walk(options, func);
+			((ISqlExpressionWalkable)GroupBy).Walk(options, func);
+			((ISqlExpressionWalkable)Having) .Walk(options, func);
+			((ISqlExpressionWalkable)OrderBy).Walk(options, func);
 
-			if (HasUnion)
-				foreach (var union in Unions)
-					((ISqlExpressionWalkable)union.SelectQuery).Walk(skipColumns, func);
+			if (HasSetOperators)
+				foreach (var setOperator in SetOperators)
+					((ISqlExpressionWalkable)setOperator.SelectQuery).Walk(options, func);
+
+			if (HasUniqueKeys)
+				foreach (var uk in UniqueKeys)
+					foreach (var k in uk)
+						k.Walk(options, func);
 
 			return func(this);
 		}
@@ -341,8 +367,8 @@ namespace LinqToDB.SqlQuery
 			((IQueryElement)Having). ToString(sb, dic);
 			((IQueryElement)OrderBy).ToString(sb, dic);
 
-			if (HasUnion)
-				foreach (IQueryElement u in Unions)
+			if (HasSetOperators)
+				foreach (IQueryElement u in SetOperators)
 					u.ToString(sb, dic);
 
 			dic.Remove(this);
@@ -369,5 +395,6 @@ namespace LinqToDB.SqlQuery
 		}
 
 		#endregion
+
 	}
 }

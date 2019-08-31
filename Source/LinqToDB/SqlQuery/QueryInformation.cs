@@ -80,24 +80,11 @@ namespace LinqToDB.SqlQuery
 			{
 				// assuming that list at this stage is immutable
 				foreach (var item in list)
-				{
-					yield return item;
-				}
-
-				foreach (var item in list)
 				foreach (var subItem in GetQueriesParentFirst(item))
 				{
 					yield return subItem;
 				}
 			}
-		}
-
-		public bool? GetUnionInvolving(SelectQuery selectQuery)
-		{
-			var info = GetHierarchyInfo(selectQuery);
-			if (info?.HierarchyType != HierarchyType.Union)
-				return null;
-			return ((SqlUnion)info.ParentElement).IsAll;
 		}
 
 		void RegisterHierachry(SelectQuery parent, SelectQuery child, HierarchyInfo info)
@@ -120,10 +107,10 @@ namespace LinqToDB.SqlQuery
 				{
 					RegisterHierachry(selectQuery, s, new HierarchyInfo(selectQuery, HierarchyType.From, selectQuery));
 
-					foreach (var union in s.Unions)
+					foreach (var setOperator in s.SetOperators)
 					{
-						RegisterHierachry(selectQuery, union.SelectQuery, new HierarchyInfo(selectQuery, HierarchyType.Union, union));
-						BuildParentHierarchy(union.SelectQuery);
+						RegisterHierachry(selectQuery, setOperator.SelectQuery, new HierarchyInfo(selectQuery, HierarchyType.SetOperator, setOperator));
+						BuildParentHierarchy(setOperator.SelectQuery);
 					}
 
 					BuildParentHierarchy(s);
@@ -150,6 +137,8 @@ namespace LinqToDB.SqlQuery
 			};
 
 			items.AddRange(selectQuery.Select.Columns);
+			if (!selectQuery.Where.IsEmpty)
+				items.Add(selectQuery.Where);
 
 			foreach (var item in items)
 			{
@@ -174,7 +163,7 @@ namespace LinqToDB.SqlQuery
 		{
 			From,
 			Join,
-			Union,
+			SetOperator,
 			InnerQuery
 		}
 

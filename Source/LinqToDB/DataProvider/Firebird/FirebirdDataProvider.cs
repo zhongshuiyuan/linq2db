@@ -30,6 +30,7 @@ namespace LinqToDB.DataProvider.Firebird
 			SqlProviderFlags.IsIdentityParameterRequired       = true;
 			SqlProviderFlags.IsCommonTableExpressionsSupported = true;
 			SqlProviderFlags.IsSubQueryOrderBySupported        = true;
+			SqlProviderFlags.IsDistinctSetOperationsSupported  = false;
 
 			SetCharField("CHAR", (r,i) => r.GetString(i).TrimEnd(' '));
 			SetCharFieldToType<char>("CHAR", (r, i) => DataTools.GetChar(r, i));
@@ -50,7 +51,7 @@ namespace LinqToDB.DataProvider.Firebird
 			return value;
 		}
 
-		static Action<IDbDataParameter> _setTimeStamp;
+		Action<IDbDataParameter> _setTimeStamp;
 
 		public    override string ConnectionNamespace => "FirebirdSql.Data.FirebirdClient";
 		protected override string ConnectionTypeName  => $"{ConnectionNamespace}.FbConnection, {ConnectionNamespace}";
@@ -62,9 +63,9 @@ namespace LinqToDB.DataProvider.Firebird
 			_setTimeStamp = GetSetParameter(connectionType, "FbParameter",         "FbDbType", "FbDbType", "TimeStamp");
 		}
 
-		public override ISqlBuilder CreateSqlBuilder()
+		public override ISqlBuilder CreateSqlBuilder(MappingSchema mappingSchema)
 		{
-			return new FirebirdSqlBuilder(GetSqlOptimizer(), SqlProviderFlags, MappingSchema.ValueToSqlConverter);
+			return new FirebirdSqlBuilder(GetSqlOptimizer(), SqlProviderFlags, mappingSchema.ValueToSqlConverter);
 		}
 
 		readonly ISqlOptimizer _sqlOptimizer;
@@ -86,26 +87,26 @@ namespace LinqToDB.DataProvider.Firebird
 			return true;
 		}
 
-		public override void SetParameter(IDbDataParameter parameter, string name, DataType dataType, object value)
+		public override void SetParameter(IDbDataParameter parameter, string name, DbDataType dataType, object value)
 		{
 			if (value is bool)
 			{
 				value = (bool)value ? "1" : "0";
-				dataType = DataType.Char;
+				dataType = dataType.WithDataType(DataType.Char);
 			}
 
 			base.SetParameter(parameter, name, dataType, value);
 		}
 
-		protected override void SetParameterType(IDbDataParameter parameter, DataType dataType)
+		protected override void SetParameterType(IDbDataParameter parameter, DbDataType dataType)
 		{
-			switch (dataType)
+			switch (dataType.DataType)
 			{
-				case DataType.SByte      : dataType = DataType.Int16;   break;
-				case DataType.UInt16     : dataType = DataType.Int32;   break;
-				case DataType.UInt32     : dataType = DataType.Int64;   break;
-				case DataType.UInt64     : dataType = DataType.Decimal; break;
-				case DataType.VarNumeric : dataType = DataType.Decimal; break;
+				case DataType.SByte      : dataType = dataType.WithDataType(DataType.Int16);   break;
+				case DataType.UInt16     : dataType = dataType.WithDataType(DataType.Int32);   break;
+				case DataType.UInt32     : dataType = dataType.WithDataType(DataType.Int64);   break;
+				case DataType.UInt64     : dataType = dataType.WithDataType(DataType.Decimal); break;
+				case DataType.VarNumeric : dataType = dataType.WithDataType(DataType.Decimal); break;
 				case DataType.DateTime   :
 				case DataType.DateTime2  : _setTimeStamp(parameter);    return;
 			}
@@ -116,11 +117,11 @@ namespace LinqToDB.DataProvider.Firebird
 		#region BulkCopy
 
 		public override BulkCopyRowsCopied BulkCopy<T>(
-			[JetBrains.Annotations.NotNull] DataConnection dataConnection, BulkCopyOptions options, IEnumerable<T> source)
+			[JetBrains.Annotations.NotNull] ITable<T> table, BulkCopyOptions options, IEnumerable<T> source)
 		{
 			return new FirebirdBulkCopy().BulkCopy(
 				options.BulkCopyType == BulkCopyType.Default ? FirebirdTools.DefaultBulkCopyType : options.BulkCopyType,
-				dataConnection,
+				table,
 				options,
 				source);
 		}

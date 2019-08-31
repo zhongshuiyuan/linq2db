@@ -24,16 +24,31 @@ namespace LinqToDB.Linq.Builder
 			var collectionSelector = (LambdaExpression)methodCall.Arguments[1].Unwrap();
 			var resultSelector     = (LambdaExpression)methodCall.Arguments[2].Unwrap();
 
-			if (sequence.SelectQuery.HasUnion || !sequence.SelectQuery.IsSimple)
+			var expr           = collectionSelector.Body.Unwrap();
+			DefaultIfEmptyBuilder.DefaultIfEmptyContext defaultIfEmpty = null;
+			if (expr is MethodCallExpression mc && AllJoinsBuilder.IsMatchingMethod(mc, true))
 			{
-				sequence = new SubQueryContext(sequence);
+				defaultIfEmpty = new DefaultIfEmptyBuilder.DefaultIfEmptyContext(buildInfo.Parent, sequence, null);
+				sequence       = new SubQueryContext(defaultIfEmpty);
+
+				defaultIfEmpty.Disabled = true;
 			}
+			else if (sequence.SelectQuery.HasSetOperators || !sequence.SelectQuery.IsSimple || sequence.GetType() == typeof(SelectContext))
+				// TODO: we should create subquery unconditionally and let optimizer remove it later if it is not needed,
+				// but right now it breaks at least association builder so it is not a small change
+				sequence = new SubQueryContext(sequence);
 
 			var context        = new SelectManyContext(buildInfo.Parent, collectionSelector, sequence);
-			var expr           = collectionSelector.Body.Unwrap();
+			context.SetAlias(collectionSelector.Parameters[0].Name);
 
 			var collectionInfo = new BuildInfo(context, expr, new SelectQuery());
 			var collection     = builder.BuildSequence(collectionInfo);
+			if (resultSelector.Parameters.Count > 1)
+				collection.SetAlias(resultSelector.Parameters[1].Name);
+
+			if (defaultIfEmpty != null && (collectionInfo.JoinType == JoinType.Right || collectionInfo.JoinType == JoinType.Full))
+				defaultIfEmpty.Disabled = false;
+
 			var leftJoin       = collection is DefaultIfEmptyBuilder.DefaultIfEmptyContext || collectionInfo.JoinType == JoinType.Left;
 			var sql            = collection.SelectQuery;
 
@@ -65,7 +80,7 @@ namespace LinqToDB.Linq.Builder
 
 							collection.SelectQuery.Where.ConcatSearchCondition(foundJoin.Condition);
 
-							((ISqlExpressionWalkable) collection.SelectQuery.Where).Walk(false, e =>
+							((ISqlExpressionWalkable) collection.SelectQuery.Where).Walk(new WalkOptions(), e =>
 							{
 								if (e is SqlColumn column)
 								{
@@ -105,7 +120,7 @@ namespace LinqToDB.Linq.Builder
 			{
 				var tableSources = new HashSet<ISqlTableSource>();
 
-				((ISqlExpressionWalkable)sql.Where.SearchCondition).Walk(false, e =>
+				((ISqlExpressionWalkable)sql.Where.SearchCondition).Walk(new WalkOptions(), e =>
 				{
 					if (e is ISqlTableSource ts && !tableSources.Contains(ts))
 						tableSources.Add(ts);
@@ -152,7 +167,8 @@ namespace LinqToDB.Linq.Builder
 					var isApplyJoin =
 						//Common.Configuration.Linq.PrefereApply    ||
 						collection.SelectQuery.Select.HasModifier ||
-					                  table.SqlTable.TableArguments != null && table.SqlTable.TableArguments.Length > 0;
+						table.SqlTable.TableArguments != null && table.SqlTable.TableArguments.Length > 0 ||
+						table.SqlTable is SqlRawSqlTable rawTable && rawTable.Parameters.Length > 0;
 
 					joinType = isApplyJoin
 						? (leftJoin ? JoinType.OuterApply : JoinType.CrossApply)

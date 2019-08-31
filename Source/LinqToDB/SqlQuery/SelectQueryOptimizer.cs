@@ -324,10 +324,10 @@ namespace LinqToDB.SqlQuery
 		void OptimizeUnions()
 		{
 			var isAllUnion = QueryVisitor.Find(_selectQuery,
-				ne => ne is SqlUnion nu && nu.IsAll);
+				ne => ne is SqlSetOperator nu && nu.Operation == SetOperation.UnionAll);
 
 			var isNotAllUnion = QueryVisitor.Find(_selectQuery,
-				ne => ne is SqlUnion nu && !nu.IsAll);
+				ne => ne is SqlSetOperator nu && nu.Operation != SetOperation.UnionAll);
 
 			if (isNotAllUnion != null && isAllUnion != null)
 				return;
@@ -346,7 +346,7 @@ namespace LinqToDB.SqlQuery
 
 				var union = (SelectQuery)table.Source;
 
-				if (!union.HasUnion)
+				if (!union.HasSetOperators || sql.Select.Columns.Count != union.Select.Columns.Count)
 					return;
 
 				for (var i = 0; i < sql.Select.Columns.Count; i++)
@@ -381,25 +381,19 @@ namespace LinqToDB.SqlQuery
 				sql.Having. SearchCondition.Conditions.AddRange(union.Having.SearchCondition.Conditions);
 				sql.GroupBy.Items.                     AddRange(union.GroupBy.Items);
 				sql.OrderBy.Items.                     AddRange(union.OrderBy.Items);
-				sql.Unions.InsertRange(0, union.Unions);
+				sql.SetOperators.InsertRange(0, union.SetOperators);
 			});
 
 			if (exprs.Count > 0)
+			{
 				_selectQuery.Walk(
-					false, expr => exprs.TryGetValue(expr, out var e) ? e : expr);
+					new WalkOptions { ProcessParent = true },
+					expr => exprs.TryGetValue(expr, out var e) ? e : expr);
+			}
 		}
 
 		void FinalizeAndValidateInternal(bool isApplySupported, bool optimizeColumns, List<ISqlTableSource> tables)
 		{
-			OptimizeSearchCondition(_selectQuery.Where. SearchCondition);
-			OptimizeSearchCondition(_selectQuery.Having.SearchCondition);
-
-			_selectQuery.ForEachTable(table =>
-			{
-				foreach (var join in table.Joins)
-					OptimizeSearchCondition(join.Condition);
-			}, new HashSet<SelectQuery>());
-
 			new QueryVisitor().Visit(_selectQuery, e =>
 			{
 				if (e is SelectQuery sql && sql != _selectQuery)
@@ -421,127 +415,198 @@ namespace LinqToDB.SqlQuery
 			OptimizeDistinctOrderBy();
 		}
 
-		internal static void OptimizeSearchCondition(SqlSearchCondition searchCondition)
+		public static bool? GetBoolValue(ISqlExpression expression)
 		{
-			// This 'if' could be replaced by one simple match:
-			//
-			// match (searchCondition.Conditions)
-			// {
-			// | [SearchCondition(true, _) sc] =>
-			//     searchCondition.Conditions = sc.Conditions;
-			//     OptimizeSearchCondition(searchCodition)
-			//
-			// | [SearchCondition(false, [SearchCondition(true, [ExprExpr]) sc])] => ...
-			//
-			// | [Expr(true,  SqlValue(true))]
-			// | [Expr(false, SqlValue(false))]
-			//     searchCondition.Conditions = []
-			// }
-			//
-			// One day I am going to rewrite all this crap in Nemerle.
-			//
-			if (searchCondition.Conditions.Count == 1)
+			if (expression is SqlValue value)
 			{
-				var cond = searchCondition.Conditions[0];
-
-				if (cond.Predicate is SqlSearchCondition sc)
+				if (value.Value is bool b)
+					return b;
+			}
+			else if (expression is SqlSearchCondition searchCondition)
+			{
+				if (searchCondition.Conditions.Count == 0)
+					return true;
+				if (searchCondition.Conditions.Count == 1)
 				{
-					if (!cond.IsNot)
+					var cond = searchCondition.Conditions[0];
+					if (cond.Predicate.ElementType == QueryElementType.ExprPredicate)
 					{
-						searchCondition.Conditions.Clear();
-						searchCondition.Conditions.AddRange(sc.Conditions);
-
-						OptimizeSearchCondition(searchCondition);
-						return;
-					}
-
-					if (sc.Conditions.Count == 1)
-					{
-						var c1 = sc.Conditions[0];
-
-						if (!c1.IsNot && c1.Predicate is SqlPredicate.ExprExpr)
-						{
-							var ee = (SqlPredicate.ExprExpr)c1.Predicate;
-							SqlPredicate.Operator op;
-
-							switch (ee.Operator)
-							{
-								case SqlPredicate.Operator.Equal          : op = SqlPredicate.Operator.NotEqual;       break;
-								case SqlPredicate.Operator.NotEqual       : op = SqlPredicate.Operator.Equal;          break;
-								case SqlPredicate.Operator.Greater        : op = SqlPredicate.Operator.LessOrEqual;    break;
-								case SqlPredicate.Operator.NotLess        :
-								case SqlPredicate.Operator.GreaterOrEqual : op = SqlPredicate.Operator.Less;           break;
-								case SqlPredicate.Operator.Less           : op = SqlPredicate.Operator.GreaterOrEqual; break;
-								case SqlPredicate.Operator.NotGreater     :
-								case SqlPredicate.Operator.LessOrEqual    : op = SqlPredicate.Operator.Greater;        break;
-								default: throw new InvalidOperationException();
-							}
-
-							c1.Predicate = new SqlPredicate.ExprExpr(ee.Expr1, op, ee.Expr2);
-
-							searchCondition.Conditions.Clear();
-							searchCondition.Conditions.AddRange(sc.Conditions);
-
-							OptimizeSearchCondition(searchCondition);
-							return;
-						}
+						var boolValue = GetBoolValue(((SqlPredicate.Expr)cond.Predicate).Expr1);
+						if (boolValue.HasValue)
+							return cond.IsNot ? !boolValue : boolValue;
 					}
 				}
+			}
 
-				if (cond.Predicate.ElementType == QueryElementType.ExprPredicate)
-				{
-					var expr = (SqlPredicate.Expr)cond.Predicate;
+			return null;
+		}
 
-					if (expr.Expr1 is SqlValue value)
-						if (value.Value is bool b)
-							if (cond.IsNot ? !b : b)
-								searchCondition.Conditions.Clear();
-				}
+		internal static SqlSearchCondition OptimizeSearchCondition(SqlSearchCondition inputCondition)
+		{
+			var searchCondition = inputCondition;
+
+			void ClearAll()
+			{
+				searchCondition = new SqlSearchCondition();
+			}
+
+			void EnsureCopy()
+			{
+				if (!ReferenceEquals(searchCondition, inputCondition))
+					return;
+
+				searchCondition = new SqlSearchCondition(inputCondition.Conditions.Select(c => new SqlCondition(c.IsNot, c.Predicate, c.IsOr)));
 			}
 
 			for (var i = 0; i < searchCondition.Conditions.Count; i++)
 			{
 				var cond = searchCondition.Conditions[i];
+				var newCond = cond;
+				if (cond.Predicate.ElementType == QueryElementType.ExprExprPredicate)
+				{
+					var exprExpr = (SqlPredicate.ExprExpr)cond.Predicate;
+
+					if (cond.IsNot)
+					{
+						SqlPredicate.Operator op;
+
+						switch (exprExpr.Operator)
+						{
+							case SqlPredicate.Operator.Equal          : op = SqlPredicate.Operator.NotEqual;       break;
+							case SqlPredicate.Operator.NotEqual       : op = SqlPredicate.Operator.Equal;          break;
+							case SqlPredicate.Operator.Greater        : op = SqlPredicate.Operator.LessOrEqual;    break;
+							case SqlPredicate.Operator.NotLess        :
+							case SqlPredicate.Operator.GreaterOrEqual : op = SqlPredicate.Operator.Less;           break;
+							case SqlPredicate.Operator.Less           : op = SqlPredicate.Operator.GreaterOrEqual; break;
+							case SqlPredicate.Operator.NotGreater     :
+							case SqlPredicate.Operator.LessOrEqual    : op = SqlPredicate.Operator.Greater;        break;
+							default: throw new InvalidOperationException();
+						}
+
+						exprExpr = new SqlPredicate.ExprExpr(exprExpr.Expr1, op, exprExpr.Expr2);
+						newCond  = new SqlCondition(false, exprExpr);
+					}
+
+					if ((exprExpr.Operator == SqlPredicate.Operator.Equal ||
+					     exprExpr.Operator == SqlPredicate.Operator.NotEqual)
+					    && exprExpr.Expr1 is SqlValue value1 && value1.Value != null 
+					    && exprExpr.Expr2 is SqlValue value2 && value2.Value != null
+					    && value1.GetType() == value2.GetType())
+					{
+						newCond = new SqlCondition(newCond.IsNot, new SqlPredicate.Expr(new SqlValue(
+							(value1.Value.Equals(value2.Value) == (exprExpr.Operator == SqlPredicate.Operator.Equal)))));
+					}
+				}
+
+				if (newCond.Predicate.ElementType == QueryElementType.ExprPredicate)
+				{
+					var expr = (SqlPredicate.Expr)newCond.Predicate;
+
+					if (cond.IsNot && expr.Expr1 is SqlValue sqlValue && sqlValue.Value is bool b)
+					{
+						newCond = new SqlCondition(false, new SqlPredicate.Expr(new SqlValue(!b)));
+					}
+				}
+
+				if (!ReferenceEquals(cond, newCond))
+				{
+					EnsureCopy();
+					searchCondition.Conditions[i] = newCond;
+					cond = newCond;
+				}
 
 				if (cond.Predicate.ElementType == QueryElementType.ExprPredicate)
 				{
 					var expr = (SqlPredicate.Expr)cond.Predicate;
+					var boolValue = GetBoolValue(expr.Expr1);
 
-					if (expr.Expr1 is SqlValue value)
+					if (boolValue != null)
 					{
-						if (value.Value is bool b)
-						{
-							if (cond.IsNot ? !b : b)
-							{
-								if (i > 0)
-								{
-									if (searchCondition.Conditions[i-1].IsOr)
-									{
-										searchCondition.Conditions.RemoveRange(0, i);
-										OptimizeSearchCondition(searchCondition);
+						var isTrue = cond.IsNot ? !boolValue.Value : boolValue.Value;
+						bool? leftIsOr  = i > 0 ? searchCondition.Conditions[i - 1].IsOr : (bool?)null;
+						bool? rightIsOr = i + 1 < searchCondition.Conditions.Count ? cond.IsOr : (bool?)null;
 
-										break;
-									}
+						if (isTrue)
+						{
+							if ((leftIsOr == true || leftIsOr == null) && (rightIsOr == true || rightIsOr == null))
+							{
+								ClearAll();
+								break;
+							}
+
+							EnsureCopy();
+							searchCondition.Conditions.RemoveAt(i);
+							if (leftIsOr== false && rightIsOr != null)
+								searchCondition.Conditions[i - 1].IsOr = rightIsOr.Value;
+							--i;
+						}
+						else
+						{
+							if (leftIsOr == false)
+							{
+								EnsureCopy();
+								searchCondition.Conditions.RemoveAt(i - 1);
+								--i;
+							}
+							else if (rightIsOr == false)
+							{
+								EnsureCopy();
+								searchCondition.Conditions[i].IsOr = searchCondition.Conditions[i + 1].IsOr;
+								searchCondition.Conditions.RemoveAt(i + 1);
+								--i;
+							}
+							else
+							{
+								if (rightIsOr != null || leftIsOr != null)
+								{
+									EnsureCopy();
+									searchCondition.Conditions.RemoveAt(i);
+									if (leftIsOr != null && rightIsOr != null)
+										searchCondition.Conditions[i - 1].IsOr = rightIsOr.Value;
+									--i;
 								}
 							}
 						}
+
 					}
 				}
 				else if (cond.Predicate is SqlSearchCondition sc)
 				{
-					OptimizeSearchCondition(sc);
+					var newSc = OptimizeSearchCondition(sc);
+					if (!ReferenceEquals(newSc, sc))
+					{
+						EnsureCopy();
+						searchCondition.Conditions[i] = new SqlCondition(cond.IsNot, newSc, cond.IsOr);
+						sc = newSc;
+					}
+
 					if (sc.Conditions.Count == 0)
 					{
-						if (cond.IsOr)
-						{
-							searchCondition.Conditions.Clear();
-							break;
-						}
-						searchCondition.Conditions.RemoveAt(i);
+						EnsureCopy();
+						var inlinePredicate = new SqlPredicate.Expr(new SqlValue(!cond.IsNot));
+						searchCondition.Conditions[i] =
+							new SqlCondition(false, inlinePredicate, searchCondition.Conditions[i].IsOr);
+						--i;
+					}
+					else if (sc.Conditions.Count == 1)
+					{
+						// reduce nesting
+						EnsureCopy();
+
+						var isNot = searchCondition.Conditions[i].IsNot;
+						if (sc.Conditions[0].IsNot)
+							isNot = !isNot;
+
+						var inlineCondition = new SqlCondition(isNot, sc.Conditions[0].Predicate, searchCondition.Conditions[i].IsOr);
+
+						searchCondition.Conditions[i] = inlineCondition;
+
 						--i;
 					}
 				}
 			}
+
+			return searchCondition;
 		}
 
 		internal void ResolveWeakJoins(List<ISqlTableSource> tables)
@@ -570,9 +635,17 @@ namespace LinqToDB.SqlQuery
 
 			var areTablesCollected = false;
 
+			var visitor = new QueryVisitor();
+
+			void TableCollector(IQueryElement expr)
+			{
+				if (expr is SqlField field && field.Table != null && field.Table.All != field && !tables.Contains(field.Table))
+					tables.Add(field.Table);
+			}
+
 			_selectQuery.ForEachTable(table =>
 			{
-				for (var i = 0; i < table.Joins.Count; i++)
+				for (var i = table.Joins.Count - 1; i >= 0; i--)
 				{
 					var join = table.Joins[i];
 
@@ -581,14 +654,6 @@ namespace LinqToDB.SqlQuery
 						if (!areTablesCollected)
 						{
 							areTablesCollected = true;
-
-							void TableCollector(IQueryElement expr)
-							{
-								if (expr is SqlField field && !tables.Contains(field.Table))
-									tables.Add(field.Table);
-							}
-
-							var visitor = new QueryVisitor();
 
 							visitor.VisitAll(_selectQuery.Select,  TableCollector);
 							visitor.VisitAll(_selectQuery.Where,   TableCollector);
@@ -623,9 +688,11 @@ namespace LinqToDB.SqlQuery
 						else
 						{
 							table.Joins.RemoveAt(i);
-							i--;
+							continue;
 						}
 					}
+
+					visitor.VisitAll(join, TableCollector);
 				}
 			}, new HashSet<SelectQuery>());
 		}
@@ -636,7 +703,8 @@ namespace LinqToDB.SqlQuery
 			bool allColumns,
 			bool isApplySupported,
 			bool optimizeValues,
-			bool optimizeColumns)
+			bool optimizeColumns,
+			JoinType parentJoin)
 		{
 			foreach (var jt in source.Joins)
 			{
@@ -646,7 +714,8 @@ namespace LinqToDB.SqlQuery
 					false,
 					isApplySupported,
 					jt.JoinType == JoinType.Inner || jt.JoinType == JoinType.CrossApply,
-					optimizeColumns);
+					optimizeColumns,
+					jt.JoinType);
 
 				if (table != jt.Table)
 				{
@@ -667,14 +736,13 @@ namespace LinqToDB.SqlQuery
 					{
 						// We can not remove subquery that is left side for FULL and RIGHT joins and there is filter
 						var join = source.Joins[0];
-						if (join.JoinType == JoinType.Full ||
-						    join.JoinType == JoinType.Right
+						if ((join.JoinType == JoinType.Full || join.JoinType == JoinType.Right)
 							&& !select.Where.IsEmpty)
 						canRemove = false;
 					}
 				}
 				if (canRemove)
-					return RemoveSubQuery(source, optimizeWhere, allColumns && !isApplySupported, optimizeValues, optimizeColumns);
+					return RemoveSubQuery(source, optimizeWhere, allColumns && !isApplySupported, optimizeValues, optimizeColumns, parentJoin);
 			}
 
 			return source;
@@ -735,10 +803,10 @@ namespace LinqToDB.SqlQuery
 					return toReplace.TryGetValue(e, out var newValue) ? newValue : e;
 				}
 
-				((ISqlExpressionWalkable)query.RootQuery()).Walk(false, TransformFunc);
+				((ISqlExpressionWalkable)query.RootQuery()).Walk(new WalkOptions(), TransformFunc);
 				foreach (var j in joins)
 				{
-					((ISqlExpressionWalkable) j).Walk(false, TransformFunc);
+					((ISqlExpressionWalkable) j).Walk(new WalkOptions(), TransformFunc);
 				}
 
 				query.Select.From.Tables.Add(baseTable);
@@ -787,15 +855,19 @@ namespace LinqToDB.SqlQuery
 			bool concatWhere,
 			bool allColumns,
 			bool optimizeValues,
-			bool optimizeColumns)
+			bool optimizeColumns,
+			JoinType parentJoin)
 		{
 			var query = (SelectQuery)childSource.Source;
 
-			var isQueryOK = query.From.Tables.Count == 1;
+			var isQueryOK = !query.DoNotRemove && query.From.Tables.Count == 1;
 
 			isQueryOK = isQueryOK && (concatWhere || query.Where.IsEmpty && query.Having.IsEmpty);
-			isQueryOK = isQueryOK && !query.HasUnion && query.GroupBy.IsEmpty && !query.Select.HasModifier;
+			isQueryOK = isQueryOK && !query.HasSetOperators && query.GroupBy.IsEmpty && !query.Select.HasModifier;
 			//isQueryOK = isQueryOK && (_flags.IsDistinctOrderBySupported || query.Select.IsDistinct );
+
+			if (isQueryOK && parentJoin != JoinType.Inner)
+				isQueryOK = query.From.Tables[0].Joins.Count == 0;
 
 			if (!isQueryOK)
 				return childSource;
@@ -810,12 +882,24 @@ namespace LinqToDB.SqlQuery
 			var map = new Dictionary<ISqlExpression,ISqlExpression>(query.Select.Columns.Count);
 
 			foreach (var c in query.Select.Columns)
+			{
 				map.Add(c, c.Expression);
+				if (c.RawAlias != null && c.Expression is SqlColumn clmn && clmn.RawAlias == null)
+					clmn.RawAlias = c.RawAlias;
+			}
+
+			List<ISqlExpression[]> uniqueKeys = null;
+			if (parentJoin == JoinType.Inner && query.HasUniqueKeys)
+				uniqueKeys = query.UniqueKeys;
+
+			uniqueKeys = uniqueKeys?
+				.Select(k => k.Select(e => map.TryGetValue(e, out var nw) ? nw : e).ToArray())
+				.ToList();
 
 			var top = _statement ?? (IQueryElement)_selectQuery.RootQuery();
 
 			((ISqlExpressionWalkable)top).Walk(
-				false, expr => map.TryGetValue(expr, out var fld) ? fld : expr);
+				new WalkOptions(), expr => map.TryGetValue(expr, out var fld) ? fld : expr);
 
 			new QueryVisitor().Visit(top, expr =>
 			{
@@ -836,7 +920,7 @@ namespace LinqToDB.SqlQuery
 			if (!query.Where. IsEmpty) ConcatSearchCondition(_selectQuery.Where,  query.Where);
 			if (!query.Having.IsEmpty) ConcatSearchCondition(_selectQuery.Having, query.Having);
 
-			((ISqlExpressionWalkable)top).Walk(false, expr =>
+			((ISqlExpressionWalkable)top).Walk(new WalkOptions(), expr =>
 			{
 				if (expr is SelectQuery sql)
 					if (sql.ParentSelect == query)
@@ -845,7 +929,12 @@ namespace LinqToDB.SqlQuery
 				return expr;
 			});
 
-			return query.From.Tables[0];
+			var result = query.From.Tables[0];
+
+			if (uniqueKeys != null)
+				result.UniqueKeys.AddRange(uniqueKeys);
+
+			return result;
 		}
 
 		static bool IsAggregationFunction(IQueryElement expr)
@@ -888,7 +977,7 @@ namespace LinqToDB.SqlQuery
 
 				var tableSources = new HashSet<ISqlTableSource>();
 
-				((ISqlExpressionWalkable)sql.Where.SearchCondition).Walk(false, e =>
+				((ISqlExpressionWalkable)sql.Where.SearchCondition).Walk(new WalkOptions(), e =>
 				{
 					if (e is ISqlTableSource ts && !tableSources.Contains(ts))
 						tableSources.Add(ts);
@@ -942,7 +1031,8 @@ namespace LinqToDB.SqlQuery
 						joinTable.JoinType == JoinType.CrossApply,
 						isApplySupported,
 						joinTable.JoinType == JoinType.Inner || joinTable.JoinType == JoinType.CrossApply,
-						optimizeColumns);
+						optimizeColumns,
+						joinTable.JoinType);
 
 					if (table != joinTable.Table)
 					{
@@ -1000,7 +1090,7 @@ namespace LinqToDB.SqlQuery
 
 			for (var i = 0; i < _selectQuery.From.Tables.Count; i++)
 			{
-				var table = OptimizeSubQuery(_selectQuery.From.Tables[i], true, false, isApplySupported, true, optimizeColumns);
+				var table = OptimizeSubQuery(_selectQuery.From.Tables[i], true, false, isApplySupported, true, optimizeColumns, JoinType.Inner);
 
 				if (table != _selectQuery.From.Tables[i])
 				{
@@ -1029,7 +1119,7 @@ namespace LinqToDB.SqlQuery
 					if (join.JoinType == JoinType.CrossApply || join.JoinType == JoinType.OuterApply)
 						OptimizeApply(tableSources, table, join, isApplySupported, optimizeColumns);
 
-					join.Walk(false, e =>
+					join.Walk(new WalkOptions(), e =>
 					{
 						if (e is ISqlTableSource ts && !tableSources.Contains(ts))
 							tableSources.Add(ts);
@@ -1041,7 +1131,7 @@ namespace LinqToDB.SqlQuery
 
 		void OptimizeColumns()
 		{
-			((ISqlExpressionWalkable)_selectQuery.Select).Walk(false, expr =>
+			((ISqlExpressionWalkable)_selectQuery.Select).Walk(new WalkOptions(), expr =>
 			{
 				if (expr is SelectQuery query    &&
 					query.From.Tables.Count == 0 &&
@@ -1113,6 +1203,5 @@ namespace LinqToDB.SqlQuery
 			}
 
 		}
-
 	}
 }
