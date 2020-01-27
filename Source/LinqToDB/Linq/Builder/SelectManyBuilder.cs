@@ -77,6 +77,7 @@ namespace LinqToDB.Linq.Builder
 						if (foundJoin != null)
 						{
 							foundJoin.JoinType = leftJoin ? JoinType.OuterApply : JoinType.CrossApply;
+							foundJoin.IsWeak = collectionInfo.IsWeakJoin;
 
 							collection.SelectQuery.Where.ConcatSearchCondition(foundJoin.Condition);
 
@@ -109,6 +110,7 @@ namespace LinqToDB.Linq.Builder
 				else
 				{
 					var join = sql.OuterApply();
+					join.JoinedTable.IsWeak = collectionInfo.IsWeakJoin;
 					sequence.SelectQuery.From.Tables[0].Joins.Add(join.JoinedTable);
 					context.Collection = new SubQueryContext(collection, sequence.SelectQuery, false);
 
@@ -177,6 +179,7 @@ namespace LinqToDB.Linq.Builder
 
 				var join = CreateJoin(joinType, sql);
 				join.JoinedTable.CanConvertApply = false;
+				join.JoinedTable.IsWeak = collectionInfo.IsWeakJoin;
 
 				if (!(joinType == JoinType.CrossApply || joinType == JoinType.OuterApply))
 				{
@@ -223,6 +226,7 @@ namespace LinqToDB.Linq.Builder
 					joinType = leftJoin ? JoinType.OuterApply : JoinType.CrossApply;
 
 				var join = CreateJoin(joinType, sql);
+				join.JoinedTable.IsWeak = collectionInfo.IsWeakJoin;
 
 				if (!(joinType == JoinType.CrossApply || joinType == JoinType.OuterApply))
 				{
