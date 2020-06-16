@@ -693,29 +693,68 @@ namespace LinqToDB.SqlQuery
 		}
 
 		internal void ResolveWeakJoins()
+		{
+			var allWeakJoins = new HashSet<IQueryElement>();
+			new QueryVisitor().VisitAll(_rootElement, e =>
 			{
-			_selectQuery.ForEachTable(table =>
-			{
-				for (var i = table.Joins.Count - 1; i >= 0; i--)
+				if (e.ElementType == QueryElementType.JoinedTable &&
+				    ((SqlJoinedTable)e).IsWeak)
 				{
-					var join = table.Joins[i];
+					allWeakJoins.Add(e);
+				}
+			});
 
-					if (join.IsWeak)
+			while (allWeakJoins.Count > 0)
+			{
+				var saveCount = allWeakJoins.Count;
+				_selectQuery.ForEachTable(table =>
+				{
+					// Optimization is done
+					if (allWeakJoins.Count == 0)
+						return;
+					
+					for (var i = table.Joins.Count - 1; i >= 0; i--)
 					{
-						var sources = new HashSet<ISqlTableSource>(QueryHelper.EnumerateAccessibleSources(join.Table));
-						var ignore  = new HashSet<IQueryElement> { join };
-						if (QueryHelper.IsDependsOn(_rootElement, sources, ignore) 
-						|| _dependencies.Any(d => QueryHelper.IsDependsOn(d, sources, ignore)))
+						var join = table.Joins[i];
+
+						if (join.IsWeak)
 						{
-							join.IsWeak = false;
-						}
-						else
-						{
-							table.Joins.RemoveAt(i);
+							var sources = new HashSet<ISqlTableSource>(QueryHelper.EnumerateAccessibleSources(join.Table));
+							
+							var hasDependencyWithoutOtherWeakJoins = QueryHelper.IsDependsOn(_rootElement, sources, allWeakJoins)
+							                          || _dependencies.Any(d => QueryHelper.IsDependsOn(d, sources, allWeakJoins));
+
+							if (hasDependencyWithoutOtherWeakJoins)
+							{
+								allWeakJoins.Remove(join);
+							}
+							else
+							{
+								// test only for self
+								var ignore = new HashSet<IQueryElement>{join};
+								
+								// for dependency including other weak joins
+								var hasAnyDependency = QueryHelper.IsDependsOn(_rootElement, sources, ignore)
+								                            || _dependencies.Any(d => QueryHelper.IsDependsOn(d, sources, ignore));
+								
+								if (!hasAnyDependency)
+								{
+									// we can safely remove join
+									table.Joins.RemoveAt(i);
+									allWeakJoins.Remove(join);
+								}
+							}
 						}
 					}
-				}
-			}, new HashSet<SelectQuery>());
+				}, new HashSet<SelectQuery>());
+				
+				if (saveCount == allWeakJoins.Count)
+				{
+					// Stop iteration, no joins were harmed 
+					break;
+				}			
+			}
+
 		}
 
 		SqlTableSource OptimizeSubQuery(
