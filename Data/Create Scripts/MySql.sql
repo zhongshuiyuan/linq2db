@@ -145,9 +145,9 @@ CREATE TABLE LinqDataTypes
 	ID             int,
 	MoneyValue     decimal(10,4),
 	DateTimeValue  datetime
--- SKIP MySql BEGIN
+-- SKIP MySql55 BEGIN
 	(3)
--- SKIP MySql END
+-- SKIP MySql55 END
 	,
 	DateTimeValue2 datetime NULL,
 	BoolValue      boolean,
@@ -170,10 +170,10 @@ CREATE TABLE TestIdentity (
 GO
 
 
-DROP TABLE IF EXISTS AllTypes
+DROP TABLE IF EXISTS `AllTypes`
 GO
 
-CREATE TABLE AllTypes
+CREATE TABLE `AllTypes`
 (
 	ID                  int AUTO_INCREMENT       NOT NULL,
 
@@ -192,16 +192,16 @@ CREATE TABLE AllTypes
 	timestampDataType   timestamp                    NULL,
 	timeDataType        time                         NULL,
 	yearDataType        year                         NULL,
--- SKIP MySql57 BEGIN
--- SKIP MySqlConnector BEGIN
-	year2DataType       year(2)                      NULL,
--- SKIP MySql57 END
--- SKIP MySqlConnector END
 -- SKIP MySql BEGIN
+-- SKIP MySqlConnector BEGIN
 -- SKIP MariaDB BEGIN
-	year2DataType       year(4)                      NULL,
+	year2DataType       year(2)                      NULL,
 -- SKIP MySql END
+-- SKIP MySqlConnector END
 -- SKIP MariaDB END
+-- SKIP MySql55 BEGIN
+	year2DataType       year(4)                      NULL,
+-- SKIP MySql55 END
 	year4DataType       year(4)                      NULL,
 
 	charDataType        char(1)                      NULL,
@@ -223,7 +223,7 @@ CREATE TABLE AllTypes
 )
 GO
 
-INSERT INTO AllTypes
+INSERT INTO `AllTypes`
 (
 	bigintDataType,
 	smallintDataType,
@@ -322,6 +322,47 @@ SELECT
 
 GO
 
+
+DROP TABLE IF EXISTS `AllTypesNoYear`
+GO
+
+CREATE TABLE `AllTypesNoYear`
+(
+	ID                  int AUTO_INCREMENT       NOT NULL,
+
+	bigintDataType      bigint                       NULL,
+	smallintDataType    smallint                     NULL,
+	tinyintDataType     tinyint                      NULL,
+	mediumintDataType   mediumint                    NULL,
+	intDataType         int                          NULL,
+	numericDataType     numeric                      NULL,
+	decimalDataType     decimal                      NULL,
+	doubleDataType      double                       NULL,
+	floatDataType       float                        NULL,
+
+	dateDataType        date                         NULL,
+	datetimeDataType    datetime                     NULL,
+	timestampDataType   timestamp                    NULL,
+	timeDataType        time                         NULL,
+
+	charDataType        char(1)                      NULL,
+	char20DataType      char(20)                     NULL,
+	varcharDataType     varchar(20)                  NULL,
+	textDataType        text                         NULL,
+
+	binaryDataType      binary(3)                    NULL,
+	varbinaryDataType   varbinary(5)                 NULL,
+	blobDataType        blob                         NULL,
+
+	bitDataType         bit(3)                       NULL,
+	enumDataType        enum('Green', 'Red', 'Blue') NULL,
+	setDataType         set('one', 'two')            NULL,
+	intUnsignedDataType int unsigned                 NULL,
+	boolDataType        bool                         NULL,
+
+	CONSTRAINT PK_AllTypes PRIMARY KEY CLUSTERED (ID)
+)
+GO
 
 DROP TABLE IF EXISTS TestSameName
 GO
@@ -441,7 +482,7 @@ DROP PROCEDURE IF EXISTS AddIssue792Record
 GO
 CREATE PROCEDURE AddIssue792Record()
 BEGIN
-	INSERT INTO AllTypes(char20DataType) VALUES('issue792');
+	INSERT INTO `AllTypes`(char20DataType) VALUES('issue792');
 END
 GO
 DROP PROCEDURE IF EXISTS `TestOutputParametersWithoutTableProcedure`
@@ -466,11 +507,11 @@ CREATE TABLE FullTextIndexTest (
 	FULLTEXT idx_field1 (TestField1),
 	FULLTEXT idx_field2 (TestField2)
 )
--- SKIP MySql57 BEGIN
+-- SKIP MySql BEGIN
 -- SKIP MariaDB BEGIN
 -- SKIP MySqlConnector BEGIN
 	ENGINE=MyISAM
--- SKIP MySql57 END
+-- SKIP MySql END
 -- SKIP MariaDB END
 -- SKIP MySqlConnector END
 ;
@@ -478,4 +519,11 @@ GO
 INSERT INTO FullTextIndexTest(TestField1, TestField2) VALUES('this is text1', 'this is text2');
 INSERT INTO FullTextIndexTest(TestField1, TestField2) VALUES('looking for something?', 'found it!');
 INSERT INTO FullTextIndexTest(TestField1, TestField2) VALUES('record not found', 'empty');
+GO
+DROP TABLE IF EXISTS Issue1993
+GO
+CREATE TABLE Issue1993 (
+	id			INTEGER UNSIGNED	NOT NULL   AUTO_INCREMENT,
+	description	VARCHAR(100)		NULL,
+PRIMARY KEY(id));
 GO
