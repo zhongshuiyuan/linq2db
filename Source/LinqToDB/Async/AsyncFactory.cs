@@ -293,7 +293,7 @@ namespace LinqToDB.Async
 				.Lambda<TDelegate>(
 					body,
 					new[] { pInstance }.Concat(parameters))
-				.Compile();
+				.CompileExpression();
 		}
 
 		/// <summary>
@@ -385,7 +385,7 @@ namespace LinqToDB.Async
 						taskConverter.MakeGenericMethod(mi.ReturnType.GetGenericArguments()[0]),
 						body),
 					new[] { pInstance }.Concat(parameters))
-				.Compile();
+				.CompileExpression();
 		}
 	}
 }

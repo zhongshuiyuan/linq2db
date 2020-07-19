@@ -215,7 +215,7 @@ namespace LinqToDB.DataProvider.PostgreSQL
 					generator.Build(),
 					pWriterIn, pColumns, pEntity);
 
-			return ex.Compile();
+			return ex.CompileExpression();
 		}
 
 		public MappingSchema MappingSchema { get; }
@@ -267,7 +267,7 @@ namespace LinqToDB.DataProvider.PostgreSQL
 						var beginBinaryImport = Expression.Lambda<Func<IDbConnection, string, NpgsqlBinaryImporter>>(
 								typeMapper.MapExpression((IDbConnection conn, string command) => typeMapper.Wrap<NpgsqlBinaryImporter>(((NpgsqlConnection)conn).BeginBinaryImport(command)), pConnection, pCommand),
 								pConnection, pCommand)
-							.Compile();
+							.CompileExpression();
 
 						// create mapping schema
 						var mappingSchema = new MappingSchema();

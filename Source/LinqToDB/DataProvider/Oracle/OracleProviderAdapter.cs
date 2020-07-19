@@ -4,6 +4,7 @@ using System.Data;
 namespace LinqToDB.DataProvider.Oracle
 {
 	using System.Linq.Expressions;
+	using LinqToDB.Common;
 	using LinqToDB.Expressions;
 	using LinqToDB.Mapping;
 
@@ -372,7 +373,7 @@ namespace LinqToDB.DataProvider.Oracle
 			var readOracleDecimalToDecimalAdv = (Expression<Func<IDataReader, int, decimal>>)Expression.Lambda(body, rdParam, indexParam);
 			// workaround for mapper issue with complex reader expressions handling
 			// https://github.com/linq2db/linq2db/issues/2032
-			var compiledReader                = readOracleDecimalToDecimalAdv.Compile();
+			var compiledReader                = readOracleDecimalToDecimalAdv.CompileExpression();
 			readOracleDecimalToDecimalAdv     = (Expression<Func<IDataReader, int, decimal>>)Expression.Lambda(
 				Expression.Invoke(Expression.Constant(compiledReader), rdParam, indexParam),
 				rdParam,
@@ -441,7 +442,7 @@ namespace LinqToDB.DataProvider.Oracle
 				if (hasNull)
 				{
 					// if native provider fails here, check that you have ODAC installed properly
-					var getNullValue = Expression.Lambda<Func<object>>(Expression.Convert(ExpressionHelper.Field(type, "Null"), typeof(object))).Compile();
+					var getNullValue = Expression.Lambda<Func<object>>(Expression.Convert(ExpressionHelper.Field(type, "Null"), typeof(object))).CompileExpression();
 					mappingSchema.AddScalarType(type, getNullValue(), true, dataType);
 				}
 				else

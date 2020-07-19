@@ -215,7 +215,7 @@ namespace LinqToDB.DataProvider
 						.Lambda(
 							converterExpr.GetBody(Expression.Convert(param, valueType)),
 							param)
-						.Compile();
+						.CompileExpression();
 
 					converters[valueType] = converter;
 				}

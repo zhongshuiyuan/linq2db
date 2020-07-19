@@ -1208,7 +1208,7 @@ namespace LinqToDB.Linq.Builder
 		ISqlExpression ConvertToSqlConvertible(Expression expression)
 		{
 			var l = Expression.Lambda<Func<IToSqlConverter>>(expression);
-			var f = l.Compile();
+			var f = l.CompileExpression();
 			var c = f();
 
 			return c.ToSql(expression);

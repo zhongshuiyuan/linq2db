@@ -53,7 +53,7 @@
 							: e),
 					p);
 
-				converter = ex.Compile();
+				converter = ex.CompileExpression();
 
 				_serializeConverters[key] = converter;
 			}
@@ -97,7 +97,7 @@
 					Expression.Convert(b, typeof(object)).Transform(e => e == ps[0] ? p : e),
 					p);
 
-				converter = ex.Compile();
+				converter = ex.CompileExpression();
 
 				_deserializeConverters[key] = converter;
 			}

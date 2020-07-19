@@ -14,6 +14,7 @@ namespace LinqToDB.ServiceModel
 	using System.Threading.Tasks;
 	using System.Data;
 	using System.Linq.Expressions;
+	using LinqToDB.Common;
 
 	[ServiceBehavior  (InstanceContextMode = InstanceContextMode.Single, ConcurrencyMode = ConcurrencyMode.Multiple)]
 	[WebService       (Namespace  = "http://tempuri.org/")]
@@ -174,7 +175,7 @@ namespace LinqToDB.ServiceModel
 						{
 							var param     = Expression.Parameter(typeof(IDataReader));
 							converterExpr = Expression.Lambda(converterExpr.GetBody(Expression.Convert(param, rd.GetType())), param);
-							reader        = ((Func<IDataReader, IDataReader>)converterExpr.Compile())(rd);
+							reader        = ((Func<IDataReader, IDataReader>)converterExpr.CompileExpression())(rd);
 						}
 
 						var ret = new LinqServiceResult
