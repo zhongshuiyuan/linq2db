@@ -19,7 +19,7 @@ namespace Tests.UserTests
 			{
 				if (obj != null)
 				{
-					var value = columnDescriptor.GetValue(MappingSchema.Default, obj);
+					var value = columnDescriptor.GetValue(obj);
 					if (value is int i)
 					{
 						return i % 2 == 0;
@@ -36,11 +36,11 @@ namespace Tests.UserTests
 		public class TestTable
 		{
 			[Column("Id"), PrimaryKey]
-			public Int32 Id { get; set; }
+			public int Id { get; set; }
 			[Column("Name")]
-			public String Name { get; set; }
+			public string? Name { get; set; }
 			[Column("Age"), SkipCustom()]
-			public Int32? Age { get; set; }
+			public int? Age { get; set; }
 		}
 
 		[Test]

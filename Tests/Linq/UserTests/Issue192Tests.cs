@@ -16,7 +16,7 @@ namespace Tests.UserTests
 		public class TypeConvertTable
 		{
 			[Column(Length = 50), NotNull]
-			public string Name   { get; set; }
+			public string Name   { get; set; } = null!;
 
 			[Column(DataType = DataType.Char), NotNull]
 			public bool BoolValue { get; set; }
@@ -29,7 +29,7 @@ namespace Tests.UserTests
 				return string.Format("{0} {1} {2}", Name, BoolValue, GuidValue);
 			}
 
-			public override bool Equals(object obj)
+			public override bool Equals(object? obj)
 			{
 				var e = obj as TypeConvertTable;
 
@@ -53,13 +53,13 @@ namespace Tests.UserTests
 		public class TypeConvertTableRaw
 		{
 			[Column(Length = 50), NotNull]
-			public string Name   { get; set; }
+			public string Name   { get; set; } = null!;
 
 			[Column(DataType = DataType.Char), NotNull]
 			public char BoolValue { get; set; }
 
 			[Column(DataType = DataType.VarChar, Length = 50), Nullable]
-			public string GuidValue { get; set; }
+			public string? GuidValue { get; set; }
 
 		}
 

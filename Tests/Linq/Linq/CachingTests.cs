@@ -29,7 +29,7 @@ namespace Tests.Linq
 		}
 
 		[Test]
-		public void TesSqlQueryDependent(
+		public void TestSqlQueryDependent(
 			[Values(
 				"MIN",
 				"MAX",
@@ -115,7 +115,7 @@ namespace Tests.Linq
 					)
 					select cc;
 
-				var sql = query.ToString();
+				var sql = query.ToString()!;
 				Console.WriteLine(sql);
 
 				Assert.That(CountOccurrences(sql, tableName),    Is.EqualTo(2));
@@ -146,7 +146,7 @@ namespace Tests.Linq
 					)
 					select cc;
 
-				var sql = query.ToString();
+				var sql = query.ToString()!;
 				Console.WriteLine(sql);
 
 				Assert.That(CountOccurrences(sql, tableName),    Is.EqualTo(2));

@@ -58,12 +58,12 @@ namespace Tests.Linq
 		}
 
 		[Test]
-		public void Basic5([DataSources(ProviderName.Access)] string context)
+		public void Basic5([DataSources(TestProvName.AllAccess)] string context)
 		{
 			using (var db = GetDataContext(context))
 				AreEqual(
-					   Child.SelectMany(t => t.Parent.GrandChildren),
-					db.Child.SelectMany(t => t.Parent.GrandChildren));
+					   Child.SelectMany(t => t.Parent!.GrandChildren),
+					db.Child.SelectMany(t => t.Parent!.GrandChildren));
 		}
 
 		[Test]
@@ -85,7 +85,7 @@ namespace Tests.Linq
 		}
 
 		[Test]
-		public void Basic62([DataSources(ProviderName.Access)] string context)
+		public void Basic62([DataSources(TestProvName.AllAccess)] string context)
 		{
 			using (var db = GetDataContext(context))
 				AreEqual(
@@ -121,7 +121,7 @@ namespace Tests.Linq
 		}
 
 		[Test]
-		public void Basic10([DataSources(ProviderName.Access)] string context)
+		public void Basic10([DataSources(TestProvName.AllAccess)] string context)
 		{
 			using (var db = GetDataContext(context))
 				AreEqual(
@@ -130,7 +130,7 @@ namespace Tests.Linq
 		}
 
 		[Test]
-		public void Basic11([DataSources(ProviderName.Access)] string context)
+		public void Basic11([DataSources(TestProvName.AllAccess)] string context)
 		{
 			using (var db = GetDataContext(context))
 				AreEqual(
@@ -314,12 +314,12 @@ namespace Tests.Linq
 		}
 
 		[Test]
-		public void OneParam3([DataSources(ProviderName.Access)] string context)
+		public void OneParam3([DataSources(TestProvName.AllAccess)] string context)
 		{
 			using (var db = GetDataContext(context))
 				AreEqual(
-					   Child.SelectMany(p => p.Parent.GrandChildren).Where(t => t.ParentID == 1).Select(t => t),
-					db.Child.SelectMany(p => p.Parent.GrandChildren).Where(t => t.ParentID == 1).Select(t => t));
+					   Child.SelectMany(p => p.Parent!.GrandChildren).Where(t => t.ParentID == 1).Select(t => t),
+					db.Child.SelectMany(p => p.Parent!.GrandChildren).Where(t => t.ParentID == 1).Select(t => t));
 		}
 
 		[Test]
@@ -360,7 +360,7 @@ namespace Tests.Linq
 		}
 
 		[Test]
-		public void SelectManyLeftJoin3([DataSources(ProviderName.Access)] string context)
+		public void SelectManyLeftJoin3([DataSources(TestProvName.AllAccess)] string context)
 		{
 			using (var db = GetDataContext(context))
 				AreEqual(
@@ -463,7 +463,7 @@ namespace Tests.Linq
 		}
 
 		[Test]
-		public void Test5([DataSources(ProviderName.Access)] string context)
+		public void Test5([DataSources(TestProvName.AllAccess)] string context)
 		{
 			using (var db = GetDataContext(context))
 			{
@@ -478,7 +478,7 @@ namespace Tests.Linq
 		}
 
 		[Test]
-		public void Test6([DataSources(ProviderName.Access)] string context)
+		public void Test6([DataSources(TestProvName.AllAccess)] string context)
 		{
 			using (var db = GetDataContext(context))
 			{
@@ -636,7 +636,7 @@ namespace Tests.Linq
 						query => db.Employee.Where(join => (query.ReportsTo == join.EmployeeID)).DefaultIfEmpty(),
 						(root, bind) => new Northwind.Employee
 						{
-							Employee2         = root.Employee2,
+//							Employee2         = root.Employee2,
 							Order             = root.Order,
 							EmployeeTerritory = root.EmployeeTerritory,
 							EmployeeID        = root.EmployeeID,
@@ -649,7 +649,7 @@ namespace Tests.Linq
 						query => db.Order.Where(join => (query.EmployeeID == join.EmployeeID)).DefaultIfEmpty(),
 						(root, bind) => new Northwind.Employee
 						{
-							Employee2         = root.Employee2,
+//							Employee2         = root.Employee2,
 							EmployeeTerritory = root.EmployeeTerritory,
 							EmployeeID        = root.EmployeeID,
 							BirthDate         = root.BirthDate,
@@ -659,10 +659,10 @@ namespace Tests.Linq
 							Order             = bind
 						})
 					.SelectMany(
-						query => db.OrderDetail.Where(join => (query.Order.OrderID == join.OrderID)).DefaultIfEmpty(),
+						query => db.OrderDetail.Where(join => (query.Order!.OrderID == join.OrderID)).DefaultIfEmpty(),
 						(root, bind) => new Northwind.Employee
 						{
-							Employee2         = root.Employee2,
+//							Employee2         = root.Employee2,
 							EmployeeTerritory = root.EmployeeTerritory,
 							EmployeeID        = root.EmployeeID,
 							BirthDate         = root.BirthDate,
@@ -671,7 +671,7 @@ namespace Tests.Linq
 							ReportsToEmployee = root.ReportsToEmployee,
 							Order = new Northwind.Order
 							{
-								OrderID      = root.Order.OrderID,
+								OrderID      = root.Order!.OrderID,
 								EmployeeID   = root.Order.EmployeeID,
 								OrderDate    = root.Order.OrderDate,
 								RequiredDate = root.Order.RequiredDate,
@@ -688,7 +688,7 @@ namespace Tests.Linq
 						query => db.EmployeeTerritory.Where(join => (query.EmployeeID == join.EmployeeID)).DefaultIfEmpty(),
 						(root, bind) => new Northwind.Employee
 						{
-							Employee2         = root.Employee2,
+//							Employee2         = root.Employee2,
 							Order             = root.Order,
 							EmployeeID        = root.EmployeeID,
 							BirthDate         = root.BirthDate,
@@ -698,10 +698,10 @@ namespace Tests.Linq
 							EmployeeTerritory = bind
 						})
 					.SelectMany(
-						query => db.Territory.Where(join => (query.EmployeeTerritory.TerritoryID == join.TerritoryID)).DefaultIfEmpty(),
+						query => db.Territory.Where(join => (query.EmployeeTerritory!.TerritoryID == join.TerritoryID)).DefaultIfEmpty(),
 						(root, bind) => new Northwind.Employee
 						{
-							Employee2         = root.Employee2,
+//							Employee2         = root.Employee2,
 							Order             = root.Order,
 							EmployeeID        = root.EmployeeID,
 							BirthDate         = root.BirthDate,
@@ -710,16 +710,16 @@ namespace Tests.Linq
 							ReportsToEmployee = root.ReportsToEmployee,
 							EmployeeTerritory = new Northwind.EmployeeTerritory
 							{
-								EmployeeID = root.EmployeeTerritory.EmployeeID,
+								EmployeeID = root.EmployeeTerritory!.EmployeeID,
 								Employee   = root.EmployeeTerritory.Employee,
 								Territory  = bind
 							}
 						})
 					.SelectMany(
-						query => db.Region.Where(join => (query.EmployeeTerritory.Territory.RegionID == join.RegionID)).DefaultIfEmpty(),
+						query => db.Region.Where(join => (query.EmployeeTerritory!.Territory.RegionID == join.RegionID)).DefaultIfEmpty(),
 						(root, bind) => new Northwind.Employee
 						{
-							Employee2         = root.Employee2,
+//							Employee2         = root.Employee2,
 							Order             = root.Order,
 							EmployeeID        = root.EmployeeID,
 							BirthDate         = root.BirthDate,
@@ -728,7 +728,7 @@ namespace Tests.Linq
 							ReportsToEmployee = root.ReportsToEmployee,
 							EmployeeTerritory = new Northwind.EmployeeTerritory
 							{
-								EmployeeID = root.EmployeeTerritory.EmployeeID,
+								EmployeeID = root.EmployeeTerritory!.EmployeeID,
 								Employee   = root.EmployeeTerritory.Employee,
 								Territory  = new Northwind.Territory
 								{

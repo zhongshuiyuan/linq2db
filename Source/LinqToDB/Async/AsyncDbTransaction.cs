@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Data;
+using System.Data.Common;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -15,18 +16,16 @@ namespace LinqToDB.Async
 	[PublicAPI]
 	public class AsyncDbTransaction : IAsyncDbTransaction
 	{
-		private readonly IDbTransaction _transaction;
-
 		internal protected AsyncDbTransaction(IDbTransaction transaction)
 		{
-			_transaction = transaction ?? throw new ArgumentNullException(nameof(transaction));
+			Transaction = transaction ?? throw new ArgumentNullException(nameof(transaction));
 		}
 
-		public virtual IDbConnection Connection => Transaction.Connection;
+		public virtual IDbConnection Connection      => Transaction.Connection;
 
 		public virtual IsolationLevel IsolationLevel => Transaction.IsolationLevel;
 
-		public IDbTransaction Transaction => _transaction;
+		public IDbTransaction Transaction { get; }
 
 		public virtual void Commit()
 		{
@@ -35,6 +34,11 @@ namespace LinqToDB.Async
 
 		public virtual Task CommitAsync(CancellationToken cancellationToken = default)
 		{
+#if NETSTANDARD2_1 || NETCOREAPP3_1
+			if (Transaction is DbTransaction dbTransaction)
+				return dbTransaction.CommitAsync(cancellationToken);
+#endif
+
 			Commit();
 
 			return TaskEx.CompletedTask;
@@ -45,6 +49,24 @@ namespace LinqToDB.Async
 			Transaction.Dispose();
 		}
 
+#if NET45 || NET46
+		public virtual Task DisposeAsync()
+		{
+			Dispose();
+
+			return TaskEx.CompletedTask;
+		}
+#else
+		public virtual ValueTask DisposeAsync()
+		{
+			if (Transaction is IAsyncDisposable asyncDisposable)
+				return asyncDisposable.DisposeAsync();
+
+			Dispose();
+			return new ValueTask(Task.CompletedTask);
+		}
+#endif
+
 		public virtual void Rollback()
 		{
 			Transaction.Rollback();
@@ -52,6 +74,11 @@ namespace LinqToDB.Async
 
 		public virtual Task RollbackAsync(CancellationToken cancellationToken = default)
 		{
+#if NETSTANDARD2_1 || NETCOREAPP3_1
+			if (Transaction is DbTransaction dbTransaction)
+				return dbTransaction.RollbackAsync(cancellationToken);
+#endif
+
 			Rollback();
 
 			return TaskEx.CompletedTask;

@@ -9,12 +9,15 @@ namespace LinqToDB.Expressions
 {
 	using LinqToDB.Common;
 	using LinqToDB.Extensions;
+	using LinqToDB.Mapping;
+	using System.Diagnostics.CodeAnalysis;
+	using System.Reflection;
 
 	public static class Extensions
 	{
 		#region GetDebugView
 
-		private static Func<Expression,string> _getDebugView;
+		private static Func<Expression,string>? _getDebugView;
 
 		/// <summary>
 		/// Gets the DebugView internal property value of provided expression.
@@ -30,7 +33,7 @@ namespace LinqToDB.Expressions
 				try
 				{
 					var l = Expression.Lambda<Func<Expression,string>>(
-						Expression.PropertyOrField(p, "DebugView"),
+						ExpressionHelper.PropertyOrField(p, "DebugView"),
 						p);
 
 					_getDebugView = l.CompileExpression();
@@ -637,7 +640,7 @@ namespace LinqToDB.Expressions
 
 		#region Find
 
-		static Expression Find<T>(IEnumerable<T> source, Func<T,Expression> func)
+		static Expression? Find<T>(IEnumerable<T> source, Func<T,Expression?> func)
 		{
 			foreach (var item in source)
 			{
@@ -649,7 +652,7 @@ namespace LinqToDB.Expressions
 			return null;
 		}
 
-		static Expression Find<T>(IEnumerable<T> source, Func<Expression,bool> func)
+		static Expression? Find<T>(IEnumerable<T> source, Func<Expression,bool> func)
 			where T : Expression
 		{
 			foreach (var item in source)
@@ -666,7 +669,7 @@ namespace LinqToDB.Expressions
 		/// Enumerates the expression tree and returns the <paramref name="exprToFind"/> if it's
 		/// contained within the <paramref name="expr"/>.
 		/// </summary>
-		public static Expression Find(this Expression expr, Expression exprToFind)
+		public static Expression? Find(this Expression? expr, Expression exprToFind)
 		{
 			return expr.Find(e => e == exprToFind);
 		}
@@ -675,7 +678,7 @@ namespace LinqToDB.Expressions
 		/// Enumerates the given <paramref name="expr"/> and returns the first sub-expression
 		/// which matches the given <paramref name="func"/>. If no expression was found, null is returned.
 		/// </summary>
-		public static Expression Find(this Expression expr, Func<Expression,bool> func)
+		public static Expression? Find(this Expression? expr, Func<Expression,bool> func)
 		{
 			if (expr == null || func(expr))
 				return expr;
@@ -803,7 +806,7 @@ namespace LinqToDB.Expressions
 
 				case ExpressionType.MemberInit:
 					{
-						Expression MemberFind(MemberBinding b)
+						Expression? MemberFind(MemberBinding b)
 						{
 							switch (b.BindingType)
 							{
@@ -925,6 +928,11 @@ namespace LinqToDB.Expressions
 
 		#region Transform
 
+		public static Expression Replace(this Expression expression, Expression toReplace, Expression replacedBy)
+		{
+			return Transform(expression, e => e == toReplace ? replacedBy : e);
+		}
+
 		/// <summary>
 		/// Returns the body of <paramref name="lambda"/> but replaces the first parameter of that
 		/// lambda expression with the <paramref name="exprToReplaceParameter"/> expression.
@@ -994,16 +1002,15 @@ namespace LinqToDB.Expressions
 		/// replace expression with the returned value of the given <paramref name="func"/>.
 		/// </summary>
 		/// <returns>The modified expression.</returns>
-		public static Expression Transform(this Expression expr, [InstantHandle] Func<Expression,Expression> func)
+		[return: NotNullIfNotNull("expr")]
+		public static Expression? Transform(this Expression? expr, [InstantHandle] Func<Expression,Expression> func)
 		{
 			if (expr == null)
 				return null;
 
-			{
-				var ex = func(expr);
-				if (ex != expr)
-					return ex;
-			}
+			var ex = func(expr);
+			if (ex != expr)
+				return ex;
 
 			switch (expr.NodeType)
 			{
@@ -1355,18 +1362,23 @@ namespace LinqToDB.Expressions
 			return modified ? list : source;
 		}
 
-		public static Expression Transform(this Expression expr, Func<Expression,TransformInfo> func)
+		[return: NotNullIfNotNull("expr")]
+		public static Expression? Transform(this Expression? expr, Func<Expression,TransformInfo> func)
 		{
 			if (expr == null)
 				return null;
 
 			TransformInfo ti;
 
+			do
 			{
 				ti = func(expr);
-				if (ti.Stop || ti.Expression != expr)
+				if (ti.Stop || !ti.Continue && ti.Expression != expr)
 					return ti.Expression;
-			}
+				if (expr == ti.Expression)
+					break;
+				expr = ti.Expression;
+			} while (true);
 
 			switch (expr.NodeType)
 			{
@@ -1702,5 +1714,20 @@ namespace LinqToDB.Expressions
 		}
 
 		#endregion
+
+		private static readonly MethodInfo _sqlProperty = typeof(Sql).GetMethodEx("Property")!.GetGenericMethodDefinition();
+
+		public static Expression GetMemberGetter(MemberInfo mi, Expression obj)
+		{
+			if (mi is DynamicColumnInfo)
+			{
+				return Expression.Call(
+					_sqlProperty.MakeGenericMethod(mi.GetMemberType()),
+					obj,
+					Expression.Constant(mi.Name));
+			}
+			else
+				return Expression.MakeMemberAccess(obj, mi);
+		}
 	}
 }

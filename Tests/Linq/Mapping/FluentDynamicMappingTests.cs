@@ -21,15 +21,15 @@ namespace Tests.Mapping
 			public int ID1 { get; set; }
 
 			[NotColumn]
-			public MyClass Parent;
+			public MyClass? Parent;
 
 			public byte RowType { get; set; }
 
 			[DynamicColumnsStore]
-			public IDictionary<string, object> ExtendedColumns { get; set; }
+			public IDictionary<string, object>? ExtendedColumns { get; set; }
 
 			[DynamicColumnsStore(Configuration = ProviderName.SQLite)]
-			public IDictionary<string, object> ExtendedSQLiteColumns { get; set; }
+			public IDictionary<string, object>? ExtendedSQLiteColumns { get; set; }
 		}
 
 		[Table]
@@ -45,7 +45,7 @@ namespace Tests.Mapping
 
 			var ed = ms.GetEntityDescriptor(typeof(MyClass));
 
-			Assert.IsTrue(ed["ID"].IsPrimaryKey);
+			Assert.IsTrue(ed["ID"]!.IsPrimaryKey);
 		}
 
 		[Test]
@@ -58,7 +58,7 @@ namespace Tests.Mapping
 
 			var ed = ms.GetEntityDescriptor(typeof(MyClass));
 
-			Assert.IsTrue(ed["ID2"].IsPrimaryKey);
+			Assert.IsTrue(ed["ID2"]!.IsPrimaryKey);
 		}
 
 		[Test]
@@ -72,7 +72,7 @@ namespace Tests.Mapping
 
 			var ed = ms.GetEntityDescriptor(typeof(MyClass));
 
-			Assert.IsTrue(ed["ID"].IsPrimaryKey);
+			Assert.IsTrue(ed["ID"]!.IsPrimaryKey);
 		}
 
 		[Test]
@@ -86,7 +86,7 @@ namespace Tests.Mapping
 
 			var ed = ms.GetEntityDescriptor(typeof(MyClass));
 
-			Assert.IsTrue(ed["ID2"].IsPrimaryKey);
+			Assert.IsTrue(ed["ID2"]!.IsPrimaryKey);
 		}
 
 		[Test]
@@ -132,7 +132,7 @@ namespace Tests.Mapping
 
 			var ed = ms.GetEntityDescriptor(typeof(MyClass));
 
-			Assert.IsTrue(ed["ID"].IsPrimaryKey);
+			Assert.IsTrue(ed["ID"]!.IsPrimaryKey);
 		}
 
 		[Test]
@@ -146,7 +146,7 @@ namespace Tests.Mapping
 
 			var ed = ms.GetEntityDescriptor(typeof(MyClass));
 
-			Assert.IsTrue(ed["ID2"].IsPrimaryKey);
+			Assert.IsTrue(ed["ID2"]!.IsPrimaryKey);
 		}
 
 		[Test]
@@ -160,7 +160,7 @@ namespace Tests.Mapping
 
 			var ed = ms.GetEntityDescriptor(typeof(MyClass));
 
-			Assert.IsTrue(ed["ID"].IsIdentity);
+			Assert.IsTrue(ed["ID"]!.IsIdentity);
 		}
 
 		[Test]
@@ -174,7 +174,7 @@ namespace Tests.Mapping
 
 			var ed = ms.GetEntityDescriptor(typeof(MyClass));
 
-			Assert.IsTrue(ed["ID2"].IsIdentity);
+			Assert.IsTrue(ed["ID2"]!.IsIdentity);
 		}
 
 		[Test]
@@ -226,7 +226,7 @@ namespace Tests.Mapping
 
 			var ed = ms.GetEntityDescriptor(typeof(MyClass));
 
-			Assert.AreEqual(ed.DynamicColumnsStore.MemberName, nameof(MyClass.ExtendedColumns));
+			Assert.AreEqual(ed.DynamicColumnsStore!.MemberName, nameof(MyClass.ExtendedColumns));
 			Assert.IsFalse(ed.Columns.Any(c => c.MemberName == nameof(MyClass.ExtendedColumns)));
 			Assert.IsFalse(ed.Columns.Any(c => c.MemberName == nameof(MyClass.ExtendedSQLiteColumns)));
 		}
@@ -238,7 +238,7 @@ namespace Tests.Mapping
 
 			var ed = ms.GetEntityDescriptor(typeof(MyClass));
 
-			Assert.AreEqual(ed.DynamicColumnsStore.MemberName, nameof(MyClass.ExtendedSQLiteColumns));
+			Assert.AreEqual(ed.DynamicColumnsStore!.MemberName, nameof(MyClass.ExtendedSQLiteColumns));
 			Assert.IsFalse(ed.Columns.Any(c => c.MemberName == nameof(MyClass.ExtendedColumns)));
 			Assert.IsFalse(ed.Columns.Any(c => c.MemberName == nameof(MyClass.ExtendedSQLiteColumns)));
 		}

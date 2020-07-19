@@ -37,18 +37,50 @@ namespace LinqToDB.Async
 
 		public virtual IDbConnection Connection => _connection;
 
+#if NET45 || NET46
 		public virtual Task<IAsyncDbTransaction> BeginTransactionAsync(CancellationToken cancellationToken = default)
+			=> Task.FromResult(AsyncFactory.Create(BeginTransaction()));
+#elif NETSTANDARD2_0 || NETCOREAPP2_1
+		public virtual ValueTask<IAsyncDbTransaction> BeginTransactionAsync(CancellationToken cancellationToken = default)
+			=> new ValueTask<IAsyncDbTransaction>(AsyncFactory.Create(BeginTransaction()));
+#else
+		public virtual async ValueTask<IAsyncDbTransaction> BeginTransactionAsync(CancellationToken cancellationToken = default)
 		{
-			return Task.FromResult(AsyncFactory.Create(BeginTransaction()));
+			if (Connection is DbConnection dbConnection)
+			{
+				var transaction = await dbConnection.BeginTransactionAsync(cancellationToken)
+					.ConfigureAwait(Common.Configuration.ContinueOnCapturedContext);
+				return new AsyncDbTransaction(transaction);
+			}
+			return AsyncFactory.Create(BeginTransaction());
 		}
+#endif
 
+#if NET45 || NET46
 		public virtual Task<IAsyncDbTransaction> BeginTransactionAsync(IsolationLevel isolationLevel, CancellationToken cancellationToken = default)
+			=> Task.FromResult(AsyncFactory.Create(BeginTransaction(isolationLevel)));
+#elif NETSTANDARD2_0 || NETCOREAPP2_1
+		public virtual ValueTask<IAsyncDbTransaction> BeginTransactionAsync(IsolationLevel isolationLevel, CancellationToken cancellationToken = default)
+			=> new ValueTask<IAsyncDbTransaction>(AsyncFactory.Create(BeginTransaction(isolationLevel)));
+#else
+		public virtual async ValueTask<IAsyncDbTransaction> BeginTransactionAsync(IsolationLevel isolationLevel, CancellationToken cancellationToken = default)
 		{
-			return Task.FromResult(AsyncFactory.Create(BeginTransaction(isolationLevel)));
+			if (Connection is DbConnection dbConnection)
+			{
+				var transaction = await dbConnection.BeginTransactionAsync(isolationLevel, cancellationToken)
+					.ConfigureAwait(Common.Configuration.ContinueOnCapturedContext);
+				return new AsyncDbTransaction(transaction);
+			}
+			return AsyncFactory.Create(BeginTransaction(isolationLevel));
 		}
+#endif
 
-		public virtual Task CloseAsync(CancellationToken cancellationToken = default)
+		public virtual Task CloseAsync()
 		{
+#if NETSTANDARD2_1 || NETCOREAPP3_1
+			if (Connection is DbConnection dbConnection) 
+				return dbConnection.CloseAsync();
+#endif
 			Close();
 
 			return TaskEx.CompletedTask;
@@ -57,7 +89,7 @@ namespace LinqToDB.Async
 		public virtual Task OpenAsync(CancellationToken cancellationToken = default)
 		{
 			if (Connection is DbConnection dbConnection)
-				return dbConnection.OpenAsync();
+				return dbConnection.OpenAsync(cancellationToken);
 
 			return TaskEx.CompletedTask;
 		}
@@ -97,11 +129,40 @@ namespace LinqToDB.Async
 			Connection.Dispose();
 		}
 
-		public virtual IAsyncDbConnection TryClone()
+#if NET45 || NET46
+		public virtual Task DisposeAsync()
 		{
-			return Connection is ICloneable cloneable
-				? AsyncFactory.Create((IDbConnection)cloneable.Clone())
-				: null;
+			Dispose();
+
+			return TaskEx.CompletedTask;
+		}
+#else
+		public virtual ValueTask DisposeAsync()
+		{
+			if (Connection is IAsyncDisposable asyncDisposable) 
+				return asyncDisposable.DisposeAsync();
+
+			Dispose();
+			return new ValueTask(Task.CompletedTask);
+		}
+#endif
+
+		public virtual IAsyncDbConnection? TryClone()
+		{
+			try
+			{
+				return Connection is ICloneable cloneable
+					? AsyncFactory.Create((IDbConnection)cloneable.Clone())
+					: null;
+			}
+			catch
+			{
+				// this try-catch added to handle errors like this one from MiniProfiler's ProfiledDbConnection
+				// "NotSupportedException : Underlying SqliteConnection is not cloneable"
+				// because wrapper implements ICloneable but wrapped connection doesn't
+				// exception-less solution will be always return null for wrapped connections which is also meh
+				return null;
+			}
 		}
 	}
 }

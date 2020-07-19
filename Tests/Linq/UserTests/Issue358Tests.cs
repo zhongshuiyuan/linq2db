@@ -10,7 +10,6 @@ namespace Tests.UserTests
 	[TestFixture]
 	public class Issue358Tests : TestBase
 	{
-#if !MONO
 		enum TestIssue358Enum
 		{
 			Value1,
@@ -33,7 +32,7 @@ namespace Tests.UserTests
 					where p.MyEnum != TestIssue358Enum.Value1
 					select p;
 
-				var sql = qry.ToString();
+				var sql = qry.ToString()!;
 
 				Assert.That(sql.IndexOf("NULL"), Is.GreaterThan(0), sql);
 			}
@@ -48,10 +47,10 @@ namespace Tests.UserTests
 
 				var qry =
 					from p in db.GetTable<TestIssue358Class>()
-					where !!filter.Contains(p.MyEnum.Value)
+					where !!filter.Contains(p.MyEnum!.Value)
 					select p;
 
-				var sql = qry.ToString();
+				var sql = qry.ToString()!;
 
 				Assert.That(sql.IndexOf("NULL"), Is.GreaterThan(0), sql);
 			}
@@ -67,10 +66,10 @@ namespace Tests.UserTests
 
 				var qry =
 					from p in db.GetTable<TestIssue358Class>()
-					where !!filter.Contains(p.MyEnum.Value)
+					where !!filter.Contains(p.MyEnum!.Value)
 					select p;
 
-				var sql = qry.ToString();
+				var sql = qry.ToString()!;
 
 				Assert.That(sql.IndexOf("NULL"), Is.LessThan(0), sql);
 			}
@@ -86,7 +85,7 @@ namespace Tests.UserTests
 					where p.MyEnum2 != TestIssue358Enum.Value1
 					select p;
 
-				var sql = qry.ToString();
+				var sql = qry.ToString()!;
 
 				Assert.That(sql.IndexOf("NULL"), Is.LessThan(0), sql);
 			}
@@ -104,7 +103,7 @@ namespace Tests.UserTests
 					where !filter.Contains(p.MyEnum2)
 					select p;
 
-				var sql = qry.ToString();
+				var sql = qry.ToString()!;
 
 				Assert.That(sql.IndexOf("NULL"), Is.LessThan(0), sql);
 			}
@@ -133,8 +132,8 @@ namespace Tests.UserTests
 			using (var db = GetDataContext(context))
 			{
 				AreEqual(FixData,
-					   Types2.Where(_ => !_.BoolValue.Value),
-					db.Types2.Where(_ => !_.BoolValue.Value));
+					   Types2.Where(_ => !_.BoolValue!.Value),
+					db.Types2.Where(_ => !_.BoolValue!.Value));
 			}
 		}
 
@@ -154,7 +153,7 @@ namespace Tests.UserTests
 		{
 			using (var db = GetDataContext(context))
 			{
-				var bigintFilter = new Int64?[] {2};
+				var bigintFilter = new long?[] {2};
 
 				AreEqual(FixData,
 					   Types2.Where(_ => !bigintFilter.Contains(_.BigIntValue)),
@@ -168,7 +167,7 @@ namespace Tests.UserTests
 			using (new WithoutComparisonNullCheck())
 			using (var db = GetDataContext(context))
 			{
-				var bigintFilter = new Int64?[] {2};
+				var bigintFilter = new long?[] {2};
 
 				AreEqual(FixData,
 					   Types2.Where(_ => !bigintFilter.Contains(_.BigIntValue) && _.BigIntValue != null),
@@ -181,7 +180,7 @@ namespace Tests.UserTests
 		{
 			using (var db = GetDataContext(context))
 			{
-				var boolFilter = new bool? [] {true};
+				var boolFilter = new bool?[] {true};
 
 				AreEqual(FixData,
 					   Types2.Where(_ => !boolFilter.  Contains(_.BoolValue)),
@@ -194,7 +193,7 @@ namespace Tests.UserTests
 		{
 			using (var db = GetDataContext(context))
 			{
-				var bigintFilter = new Int64?[] {2};
+				var bigintFilter = new long?[] {2};
 
 				AreEqual(FixData,
 					   Types2.Where(_ => bigintFilter.Contains(_.BigIntValue) == false),
@@ -207,7 +206,7 @@ namespace Tests.UserTests
 		{
 			using (var db = GetDataContext(context))
 			{
-				var boolFilter = new bool? [] {true};
+				var boolFilter = new bool?[] {true};
 
 				AreEqual(FixData,
 					   Types2.Where(_ => boolFilter.  Contains(_.BoolValue) == false),
@@ -220,7 +219,7 @@ namespace Tests.UserTests
 		{
 			using (var db = GetDataContext(context))
 			{
-				var bigintFilter = new Int64?[] {2};
+				var bigintFilter = new long?[] {2};
 
 				AreEqual(FixData,
 					   Types2.Where(_ => bigintFilter.Contains(_.BigIntValue) != true),
@@ -246,7 +245,7 @@ namespace Tests.UserTests
 		{
 			using (var db = GetDataContext(context))
 			{
-				var bigintFilter = new Int64?[] {2};
+				var bigintFilter = new long?[] {2};
 
 				AreEqual(FixData,
 					   Types2.Where(_ => bigintFilter.Contains(_.BigIntValue)),
@@ -272,7 +271,7 @@ namespace Tests.UserTests
 		{
 			using (var db = GetDataContext(context))
 			{
-				var bigintFilter = new Int64?[] {2};
+				var bigintFilter = new long?[] {2};
 
 				AreEqual(FixData,
 					   Types2.Where(_ => bigintFilter.Contains(_.BigIntValue) == true),
@@ -292,6 +291,5 @@ namespace Tests.UserTests
 					db.Types2.Where(_ => boolFilter.  Contains(_.BoolValue) == true));
 			}
 		}
-#endif
 	}
 }

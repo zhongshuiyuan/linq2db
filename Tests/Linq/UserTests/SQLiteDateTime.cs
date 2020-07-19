@@ -18,14 +18,14 @@ namespace Tests.UserTests
 		class A
 		{
 			[PrimaryKey, Identity] public int       ID       { get; set; }
-			[Column,     NotNull ] public string    Value    { get; set; }
+			[Column,     NotNull ] public string    Value    { get; set; } = null!;
 			[Column,     NotNull ] public DateTime  DateTime { get; set; }
 		}
 
 		class B
 		{
-			public int    ID;
-			public string Name;
+			public int     ID;
+			public string? Name;
 		}
 
 		static IQueryable<B> GenerateQuery(ITestDataContext db, DateTime? asOfDate = null)
@@ -51,12 +51,12 @@ namespace Tests.UserTests
 				var matchSymbolIds = new List<int>();
 
 				var queryable = GenerateQuery(db, new DateTime(2010, 3, 5)).Where(x => matchSymbolIds.Contains(x.ID));
-				return queryable.ToString();
+				return queryable.ToString()!;
 			}
 		}
 
 		[Test]
-		public void TestSql([IncludeDataSources(ProviderName.SQLiteClassic)] string context)
+		public void TestSql([IncludeDataSources(TestProvName.AllSQLiteClassic)] string context)
 		{
 			var query1 = GetSql(context);
 			var query2 = GetSql(context);

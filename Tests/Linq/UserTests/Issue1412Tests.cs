@@ -36,9 +36,9 @@ namespace Tests.UserTests
 		{
 			public ResourceStatus Status { get; set; }
 
-			public string ResourceLabel { get; set; }
+			public string? ResourceLabel { get; set; }
 
-			public string ResourceLabelNVE { get; set; }
+			public string? ResourceLabelNVE { get; set; }
 
 			public Guid? ParentResourceID { get; set; }
 
@@ -66,19 +66,19 @@ namespace Tests.UserTests
 
 			public decimal? Length { get; set; }
 
-			public string TechnicalValues { get; set; }
+			public string? TechnicalValues { get; set; }
 
 			public int RearrangementCount { get; set; }
 
 			public bool IsVirtual { get; set; }
 
-			public string ErrorMessage { get; set; }
+			public string? ErrorMessage { get; set; }
 
 			public decimal? FillingDegree { get; set; }
 
 			public DateTime? LastInventoryCheckTimeStamp { get; set; }
 
-			public string Segmentation { get; set; }
+			public string? Segmentation { get; set; }
 
 			public bool DontTouch { get; set; }
 
@@ -87,11 +87,11 @@ namespace Tests.UserTests
 				return Id.Equals(other.Id) && TypeID.Equals(other.TypeID);
 			}
 
-			public override bool Equals(object obj)
+			public override bool Equals(object? obj)
 			{
 				if (ReferenceEquals(null, obj)) return false;
 				if (ReferenceEquals(this, obj)) return true;
-				if (obj.GetType() != this.GetType()) return false;
+				if (obj.GetType() != GetType()) return false;
 				return Equals((WmsLoadCarrierDTO)obj);
 			}
 
@@ -106,16 +106,16 @@ namespace Tests.UserTests
 
 		public class WmsResourceCombinedDTO 
 		{
-			public WmsLoadCarrierDTO LoadCarrier { get; set; }
+			public WmsLoadCarrierDTO? LoadCarrier { get; set; }
 
-			public WmsResourceTypeDTO ResourceType { get; set; }
+			public WmsResourceTypeDTO? ResourceType { get; set; }
 		}
 
 		public class WmsResourceTypeDTO : BasicDTOwithExtensionData
 		{
-			public string Name { get; set; }
+			public string? Name { get; set; }
 
-			public string ShortName { get; set; }
+			public string? ShortName { get; set; }
 
 			public int Height { get; set; }
 
@@ -128,11 +128,11 @@ namespace Tests.UserTests
 				return Id.Equals(other.Id) && string.Equals(Name, other.Name) && string.Equals(ShortName, other.ShortName) && Height == other.Height && Depth == other.Depth && Width == other.Width;
 			}
 
-			public override bool Equals(object obj)
+			public override bool Equals(object? obj)
 			{
 				if (ReferenceEquals(null, obj)) return false;
 				if (ReferenceEquals(this, obj)) return true;
-				if (obj.GetType() != this.GetType()) return false;
+				if (obj.GetType() != GetType()) return false;
 				return Equals((WmsResourceTypeDTO)obj);
 			}
 

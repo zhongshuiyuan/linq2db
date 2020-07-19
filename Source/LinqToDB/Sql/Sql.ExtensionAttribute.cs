@@ -12,8 +12,6 @@ using LinqToDB.Mapping;
 
 using JetBrains.Annotations;
 
-using NotNull = JetBrains.Annotations.NotNullAttribute;
-
 namespace LinqToDB
 {
 	using Common;
@@ -26,7 +24,7 @@ namespace LinqToDB
 	[MeansImplicitUse]
 	public class ExprParameterAttribute : Attribute
 	{
-		public string Name { get; set; }
+		public string? Name { get; set; }
 
 		public ExprParameterAttribute(string name)
 		{
@@ -126,7 +124,7 @@ namespace LinqToDB
 		{
 		}
 
-		public static ISqlExtension Ext => null;
+		public static ISqlExtension? Ext => null;
 
 		public interface IExtensionCallBuilder
 		{
@@ -141,16 +139,16 @@ namespace LinqToDB
 
 		public interface ISqExtensionBuilder
 		{
-			string         Configuration    { get; }
-			object         BuilderValue     { get; }
-			IDataContext   DataContext      { get; }
-			MappingSchema  Mapping          { get; }
-			SelectQuery    Query            { get; }
-			MemberInfo     Member           { get; }
-			SqlExtension   Extension        { get; }
-			ISqlExpression ResultExpression { get; set; }
-			string         Expression       { get; set; }
-			Expression[]   Arguments        { get; }
+			string?         Configuration    { get; }
+			object?         BuilderValue     { get; }
+			IDataContext    DataContext      { get; }
+			MappingSchema   Mapping          { get; }
+			SelectQuery     Query            { get; }
+			MemberInfo      Member           { get; }
+			SqlExtension    Extension        { get; }
+			ISqlExpression? ResultExpression { get; set; }
+			string          Expression       { get; set; }
+			Expression[]    Arguments        { get; }
 
 			T GetValue<T>(int index);
 			T GetValue<T>(string argName);
@@ -166,38 +164,41 @@ namespace LinqToDB
 
 		public class SqlExtension
 		{
-			public Dictionary<string,List<SqlExtensionParam>> NamedParameters => _namedParameters;
+			public Dictionary<string, List<SqlExtensionParam>> NamedParameters { get; }
 
-			readonly Dictionary<string,List<SqlExtensionParam>> _namedParameters;
 			public int ChainPrecedence { get; set; }
 
-			public SqlExtension(Type systemType, string expr, int precedence, int chainPrecedence, bool isAggregate,
-				bool canBeNull, params SqlExtensionParam[] parameters)
+			public SqlExtension(Type? systemType, string expr, int precedence, int chainPrecedence, bool isAggregate, 
+				bool isPure,
+				bool? canBeNull, 
+				params SqlExtensionParam[] parameters)
 			{
 				if (parameters == null) throw new ArgumentNullException(nameof(parameters));
 
 				foreach (var value in parameters)
 					if (value == null) throw new ArgumentNullException(nameof(parameters));
 
-				SystemType       = systemType;
-				Expr             = expr;
-				Precedence       = precedence;
-				ChainPrecedence  = chainPrecedence;
-				IsAggregate      = isAggregate;
-				CanBeNull        = canBeNull;
-				_namedParameters = parameters.ToLookup(p => p.Name).ToDictionary(p => p.Key, p => p.ToList());
+				SystemType      = systemType;
+				Expr            = expr;
+				Precedence      = precedence;
+				ChainPrecedence = chainPrecedence;
+				IsAggregate     = isAggregate;
+				IsPure          = isPure;
+				CanBeNull       = canBeNull;
+				NamedParameters = parameters.ToLookup(p => p.Name ?? string.Empty).ToDictionary(p => p.Key, p => p.ToList());
 			}
 
 			public SqlExtension(string expr, params SqlExtensionParam[] parameters)
-				: this(null, expr, SqlQuery.Precedence.Unknown, 0, false, true, parameters)
+				: this(null, expr, SqlQuery.Precedence.Unknown, 0, false, true, true, parameters)
 			{
 			}
 
-			public Type   SystemType  { get; set; }
+			public Type?  SystemType  { get; set; }
 			public string Expr        { get; set; }
 			public int    Precedence  { get; set; }
 			public bool   IsAggregate { get; set; }
-			public bool   CanBeNull   { get; set; }
+			public bool   IsPure      { get; set; }
+			public bool?  CanBeNull   { get; set; }
 
 			public SqlExtensionParam AddParameter(string name, ISqlExpression sqlExpression)
 			{
@@ -208,10 +209,10 @@ namespace LinqToDB
 			{
 				var key = param.Name ?? string.Empty;
 
-				if (!_namedParameters.TryGetValue(key, out var list))
+				if (!NamedParameters.TryGetValue(key, out var list))
 				{
 					list = new List<SqlExtensionParam>();
-					_namedParameters.Add(key, list);
+					NamedParameters.Add(key, list);
 				}
 
 				list.Add(param);
@@ -220,56 +221,56 @@ namespace LinqToDB
 
 			public IEnumerable<SqlExtensionParam> GetParametersByName(string name)
 			{
-				if (_namedParameters.TryGetValue(name, out var list))
+				if (NamedParameters.TryGetValue(name, out var list))
 					return list;
 				return Enumerable.Empty<SqlExtensionParam>();
 			}
 
 			public SqlExtensionParam[] GetParameters()
 			{
-				return _namedParameters.Values.SelectMany(_ => _).ToArray();
+				return NamedParameters.Values.SelectMany(_ => _).ToArray();
 			}
 		}
 
 		public class SqlExtensionParam
 		{
-			public SqlExtensionParam(string name, ISqlExpression expression)
+			public SqlExtensionParam(string? name, ISqlExpression expression)
 			{
 				Name       = name;
 				Expression = expression;
 			}
 
-			public SqlExtensionParam(string name, SqlExtension extension)
+			public SqlExtensionParam(string? name, SqlExtension extension)
 			{
 				Name      = name;
 				Extension = extension;
 			}
 
-			public string         Name       { get; set; }
-			public SqlExtension   Extension  { get; set; }
-			public ISqlExpression Expression { get; set; }
+			public string?         Name       { get; set; }
+			public SqlExtension?   Extension  { get; set; }
+			public ISqlExpression? Expression { get; set; }
 		}
 
 		[AttributeUsage(AttributeTargets.Method | AttributeTargets.Property, AllowMultiple = true)]
 		public class ExtensionAttribute : ExpressionAttribute
 		{
-			private static ConcurrentDictionary<Type, IExtensionCallBuilder> _builders = new ConcurrentDictionary<Type, IExtensionCallBuilder>();
+			private static readonly ConcurrentDictionary<Type, IExtensionCallBuilder> _builders = new ConcurrentDictionary<Type, IExtensionCallBuilder>();
 
-			public string TokenName { get; set; }
+			public string? TokenName { get; set; }
 
 			protected class ExtensionBuilder: ISqExtensionBuilder
 			{
 				readonly ConvertHelper _convert;
 
 				public ExtensionBuilder(
-							  string        configuration,
-							  object        builderValue,
-					[NotNull] IDataContext  dataContext,
-					[NotNull] SelectQuery   query,
-					[NotNull] SqlExtension  extension,
-					[NotNull] ConvertHelper convertHeper,
-					[NotNull] MemberInfo    member,
-					[NotNull] Expression[]  arguments)
+					string?       configuration,
+					object?       builderValue,
+					IDataContext  dataContext,
+					SelectQuery   query,
+					SqlExtension  extension,
+					ConvertHelper convertHeper,
+					MemberInfo    member,
+					Expression[]  arguments)
 				{
 					Configuration = configuration;
 					BuilderValue  = builderValue;
@@ -282,24 +283,24 @@ namespace LinqToDB
 					Arguments     = arguments    ?? throw new ArgumentNullException(nameof(arguments));
 				}
 
-				public MethodInfo   Method { get; }
+				public MethodInfo?  Method { get; }
 
-				public ISqlExpression ConvertExpression(Expression expr)
+				public ISqlExpression ConvertExpression(Expression expr, ColumnDescriptor? columnDescriptor)
 				{
-					return _convert.Convert(expr);
+					return _convert.Convert(expr, columnDescriptor);
 				}
 
 				#region ISqExtensionBuilder Members
 
-				public string         Configuration    { get; }
-				public object         BuilderValue     { get; }
-				public IDataContext   DataContext      { get; }
-				public MappingSchema  Mapping          => DataContext.MappingSchema;
-				public SelectQuery    Query            { get; }
-				public MemberInfo     Member           { get; }
-				public SqlExtension   Extension        { get; }
-				public ISqlExpression ResultExpression { get; set; }
-				public Expression[]   Arguments        { get; }
+				public string?         Configuration    { get; }
+				public object?         BuilderValue     { get; }
+				public IDataContext    DataContext      { get; }
+				public MappingSchema   Mapping          => DataContext.MappingSchema;
+				public SelectQuery     Query            { get; }
+				public MemberInfo      Member           { get; }
+				public SqlExtension    Extension        { get; }
+				public ISqlExpression? ResultExpression { get; set; }
+				public Expression[]    Arguments        { get; }
 
 				public string Expression
 				{
@@ -332,7 +333,7 @@ namespace LinqToDB
 
 				public ISqlExpression GetExpression(int index)
 				{
-					return ConvertExpression(Arguments[index]);
+					return ConvertExpression(Arguments[index], null);
 				}
 
 				public ISqlExpression GetExpression(string argName)
@@ -359,12 +360,12 @@ namespace LinqToDB
 
 				public ISqlExpression ConvertToSqlExpression(int precedence)
 				{
-					return BuildSqlExpression(Extension, Extension.SystemType, precedence, Extension.IsAggregate, Extension.CanBeNull);
+					return BuildSqlExpression(Extension, Extension.SystemType, precedence, Extension.IsAggregate, Extension.IsPure, Extension.CanBeNull, IsNullableType.Undefined);
 				}
 
 				public ISqlExpression ConvertExpressionToSql(Expression expression)
 				{
-					return ConvertExpression(expression);
+					return ConvertExpression(expression, null);
 				}
 
 				public SqlExtensionParam AddParameter(string name, ISqlExpression expr)
@@ -376,8 +377,8 @@ namespace LinqToDB
 
 			}
 
-			public Type      BuilderType     { get; set; }
-			public object    BuilderValue    { get; set; }
+			public Type?     BuilderType     { get; set; }
+			public object?   BuilderValue    { get; set; }
 
 			/// <summary>
 			/// Defines in which order process extensions. Items will be ordered Descending.
@@ -411,21 +412,26 @@ namespace LinqToDB
 			{
 				MemberInfo memberInfo;
 
-				if (expression is MemberExpression me)
-					memberInfo = me.Member;
-				else if (expression is MethodCallExpression mc)
-					memberInfo = mc.Method;
-				else
-					return Array<ExtensionAttribute>.Empty;
+				switch (expression.NodeType)
+				{
+					case ExpressionType.MemberAccess:
+						memberInfo = ((MemberExpression) expression).Member;
+						break;
+					case ExpressionType.Call:
+						memberInfo = ((MethodCallExpression) expression).Method;
+						break;
+					default:
+						return Array<ExtensionAttribute>.Empty;
+				}
 
 				var attributes =
-						mapping.GetAttributes<ExtensionAttribute>(memberInfo.ReflectedTypeEx(), memberInfo,
+						mapping.GetAttributes<ExtensionAttribute>(memberInfo.ReflectedType!, memberInfo,
 							a => a.Configuration, inherit: true, exactForConfiguration: true);
 
 				if (attributes.Length == 0)
 				{
 					// notify if there is method that has no defined attribute for specific configuration
-					attributes = mapping.GetAttributes<ExtensionAttribute>(memberInfo.ReflectedTypeEx(), memberInfo);
+					attributes = mapping.GetAttributes<ExtensionAttribute>(memberInfo.ReflectedType!, memberInfo);
 					if (attributes.Length > 0)
 						throw new LinqToDBException($"Expression {expression}, unsupported for configuration(s) '{string.Join(", ", mapping.ConfigurationList)}'.");
 				}
@@ -437,11 +443,11 @@ namespace LinqToDB
 			{
 				var current = expr;
 
-				while (current != null)
+				while (true)
 				{
 					var attributes = GetExtensionAttributes(current, mapping);
 
-					if (!attributes.Any())
+					if (attributes.Length == 0)
 						break;
 
 					switch (current.NodeType)
@@ -449,7 +455,7 @@ namespace LinqToDB
 						case ExpressionType.MemberAccess :
 							{
 								var memberExpr = (MemberExpression)current;
-								current    = memberExpr.Expression;
+								current        = memberExpr.Expression;
 
 								break;
 							}
@@ -464,7 +470,7 @@ namespace LinqToDB
 										current = call.Arguments[0];
 									else
 										return current;
-								}								
+								}
 								else
 									current = call.Object;
 
@@ -482,14 +488,14 @@ namespace LinqToDB
 
 			protected List<SqlExtensionParam> BuildFunctionsChain(IDataContext dataContext, SelectQuery query, Expression expr, ConvertHelper convertHelper)
 			{
-				var chains   = new List<SqlExtensionParam>();
-				var current  = expr;
+				var chains           = new List<SqlExtensionParam>();
+				Expression? current  = expr;
 
 				while (current != null)
 				{
-					MemberInfo   memberInfo = null;
-					Expression[] arguments  = null;
-					Expression   next       = null;
+					MemberInfo?   memberInfo = null;
+					Expression[]? arguments  = null;
+					Expression?   next       = null;
 
 					switch (current.NodeType)
 					{
@@ -512,7 +518,7 @@ namespace LinqToDB
 								arguments  = call.Arguments.ToArray();
 
 								if (call.Method.IsStatic)
-									next = call.Arguments.First();
+									next = call.Arguments.FirstOrDefault();
 								else
 									next = call.Object;
 
@@ -523,7 +529,7 @@ namespace LinqToDB
 							{
 								if (typeof(IQueryableContainer).IsSameOrParentOf(current.Type))
 								{
-									next = ((IQueryableContainer)current.EvaluateExpression()).Query.Expression;
+									next = ((IQueryableContainer)current.EvaluateExpression()!).Query.Expression;
 								}
 								break;
 							}
@@ -535,7 +541,7 @@ namespace LinqToDB
 
 						foreach (var attr in attributes)
 						{
-							var param = attr.BuildExtensionParam(dataContext, query, memberInfo, arguments, convertHelper);
+							var param = attr.BuildExtensionParam(dataContext, query, memberInfo, arguments!, convertHelper);
 							chains.Add(param);
 						}
 					}
@@ -546,9 +552,7 @@ namespace LinqToDB
 				return chains;
 			}
 
-			public static string ResolveExpressionValues(
-				[NotNull] string expression,
-				[NotNull] Func<string, string, string> valueProvider)
+			public static string ResolveExpressionValues(string expression, Func<string, string?, string?> valueProvider)
 			{
 				if (expression    == null) throw new ArgumentNullException(nameof(expression));
 				if (valueProvider == null) throw new ArgumentNullException(nameof(valueProvider));
@@ -611,13 +615,19 @@ namespace LinqToDB
 				else if (member is PropertyInfo)
 					type = ((PropertyInfo)member).PropertyType;
 
-				var extension = new SqlExtension(type, Expression, Precedence, ChainPrecedence, IsAggregate, CanBeNull);
+				var extension = new SqlExtension(type, Expression!, Precedence, ChainPrecedence, IsAggregate, IsPure, _canBeNull);
 
-				SqlExtensionParam result = null;
+				SqlExtensionParam? result = null;
 
 				if (method != null)
 				{
 					var parameters = method.GetParameters();
+
+					var genericDefinition        = method.IsGenericMethod ? method.GetGenericMethodDefinition() : method;
+					var templateParameters       = genericDefinition.GetParameters();
+					var templateGenericArguments = genericDefinition.GetGenericArguments();
+					var descriptorMapping        = new Dictionary<Type, ColumnDescriptor?>();
+					var genericMapping           = new Dictionary<Type, Type?>();
 
 					for (var i = 0; i < parameters.Length; i++)
 					{
@@ -626,19 +636,69 @@ namespace LinqToDB
 						var names = param.GetCustomAttributes(true).OfType<ExprParameterAttribute>()
 							.Select(a => a.Name ?? param.Name)
 							.Distinct()
-							.ToArray();
+							.ToArray()!;
 
+						ColumnDescriptor? descriptor;
 						if (names.Length > 0)
 						{
-							var sqlExpressions = arg is NewArrayExpression arrayInit
-								? arrayInit.Expressions.Select(convertHelper.Convert).ToArray()
-								: new[] {convertHelper.Convert(arg)};
-
-							foreach (var name in names)
+							if (method.IsGenericMethod)
 							{
-								foreach (var sqlExpr in sqlExpressions)
+								var templateParam  = templateParameters[i];
+								var elementType    = templateParam.ParameterType!;
+								var argElementType = param.ParameterType;
+								if (elementType.IsArray && argElementType.IsArray)
 								{
-									extension.AddParameter(name, sqlExpr);
+									elementType    = elementType.GetElementType()!;
+									argElementType = argElementType.GetElementType()!;
+								}
+								descriptorMapping.TryGetValue(elementType, out descriptor);
+
+								ISqlExpression[] sqlExpressions;
+								if (arg is NewArrayExpression arrayInit)
+								{
+									sqlExpressions = arrayInit.Expressions.Select(e => convertHelper.Convert(e, descriptor)).ToArray();
+								}	
+								else
+								{
+									var sqlExpression = convertHelper.Convert(arg, descriptor);
+									sqlExpressions = new[] { sqlExpression };
+								}
+
+
+								if (descriptor == null)
+								{
+									descriptor = sqlExpressions.Select(e => QueryHelper.GetColumnDescriptor(e)).FirstOrDefault(d => d != null);
+									if (descriptor != null)
+									{
+										foreach (var pair
+											in TypeHelper.EnumTypeRemapping(elementType, argElementType, templateGenericArguments))
+										{
+											if (!descriptorMapping.ContainsKey(pair.Item1))
+												descriptorMapping.Add(pair.Item1, descriptor);
+										}
+									}
+								}
+
+								foreach (var name in names)
+								{
+									foreach (var sqlExpr in sqlExpressions)
+									{
+										extension.AddParameter(name!, sqlExpr);
+									}
+								}
+							}
+							else
+							{
+								var sqlExpressions = arg is NewArrayExpression arrayInit
+									? arrayInit.Expressions.Select(e => convertHelper.Convert(e, null)).ToArray()
+									: new[] { convertHelper.Convert(arg, null) };
+
+								foreach (var name in names)
+								{
+									foreach (var sqlExpr in sqlExpressions)
+									{
+										extension.AddParameter(name!, sqlExpr);
+									}
 								}
 							}
 						}
@@ -649,7 +709,7 @@ namespace LinqToDB
 				{
 					var callBuilder = _builders.GetOrAdd(BuilderType, t =>
 						{
-							if (Activator.CreateInstance(BuilderType) is IExtensionCallBuilder res)
+							if (Activator.CreateInstance(BuilderType)! is IExtensionCallBuilder res)
 								return res;
 
 							throw new ArgumentException(
@@ -665,6 +725,10 @@ namespace LinqToDB
 						new SqlExtensionParam(TokenName, builder.Extension);
 				}
 
+				if (!extension.CanBeNull.HasValue)
+					extension.CanBeNull = CalcCanBeNull(IsNullable,
+						extension.GetParameters().Select(p => p.Expression?.CanBeNull ?? p.Extension?.CanBeNull ?? true));
+
 				result = result ?? new SqlExtensionParam(TokenName, extension);
 
 				return result;
@@ -678,35 +742,36 @@ namespace LinqToDB
 
 			protected class ConvertHelper
 			{
-				readonly Func<Expression, ISqlExpression> _converter;
+				readonly Func<Expression, ColumnDescriptor?, ISqlExpression> _converter;
 
-				public ConvertHelper([NotNull] Func<Expression, ISqlExpression> converter)
+				public ConvertHelper(Func<Expression, ColumnDescriptor?, ISqlExpression> converter)
 				{
 					_converter = converter ?? throw new ArgumentNullException(nameof(converter));
 				}
 
-				public ISqlExpression Convert(Expression exp)
+				public ISqlExpression Convert(Expression exp, ColumnDescriptor? descriptor)
 				{
-					return _converter(exp);
+					return _converter(exp, descriptor);
 				}
 			}
 
-			public static SqlExpression BuildSqlExpression(SqlExtension root, Type systemType, int precedence, bool isAggregate, bool canBeNull)
+			public static SqlExpression BuildSqlExpression(SqlExtension root, Type? systemType, int precedence,
+				bool isAggregate, bool isPure, bool? canBeNull, IsNullableType isNullable)
 			{
 				var sb             = new StringBuilder();
-				var resolvedParams = new Dictionary<SqlExtensionParam, string>();
+				var resolvedParams = new Dictionary<SqlExtensionParam, string?>();
 				var resolving      = new HashSet<SqlExtensionParam>();
 				var newParams      = new List<ISqlExpression>();
 
-				Func<string, string, string> valueProvider = null;
-				Stack<SqlExtension> current                = new Stack<SqlExtension>();
+				Func<string, string?, string?>? valueProvider = null;
+				Stack<SqlExtension> current                   = new Stack<SqlExtension>();
 
 				valueProvider = (name, delimiter) =>
 				{
 					var found = root.GetParametersByName(name);
 					if (current.Count != 0)
 						found = current.Peek().GetParametersByName(name).Concat(found);
-					string result = null;
+					string? result = null;
 					foreach (var p in found)
 					{
 						if (resolvedParams.TryGetValue(p, out var paramValue))
@@ -723,7 +788,7 @@ namespace LinqToDB
 							if (ext != null)
 							{
 								current.Push(ext);
-								paramValue = ResolveExpressionValues(ext.Expr, valueProvider);
+								paramValue = ResolveExpressionValues(ext.Expr, valueProvider!);
 								current.Pop();
 							}
 							else
@@ -754,13 +819,20 @@ namespace LinqToDB
 				};
 
 				var expr          = ResolveExpressionValues(root.Expr, valueProvider);
-				var sqlExpression = new SqlExpression(systemType, expr, precedence, isAggregate, newParams.ToArray())
-					{ CanBeNull = canBeNull };
+				var sqlExpression = new SqlExpression(systemType, expr, precedence, isAggregate, isPure, newParams.ToArray());
+				if (!canBeNull.HasValue)
+					canBeNull = root.CanBeNull;
+
+				if (!canBeNull.HasValue)
+					canBeNull = CalcCanBeNull(isNullable, sqlExpression.Parameters.Select(p => p.CanBeNull));
+
+				if (canBeNull.HasValue)
+					sqlExpression.CanBeNull = canBeNull.Value;
 
 				return sqlExpression;
 			}
 
-			public override ISqlExpression GetExpression(IDataContext dataContext, SelectQuery query, Expression expression, Func<Expression, ISqlExpression> converter)
+			public override ISqlExpression GetExpression(IDataContext dataContext, SelectQuery query, Expression expression, Func<Expression, ColumnDescriptor?, ISqlExpression> converter)
 			{
 				var helper = new ConvertHelper(converter);
 
@@ -768,49 +840,87 @@ namespace LinqToDB
 				var chain  = BuildFunctionsChain(dataContext, query, expression, helper);
 
 				if (chain.Count == 0)
-					throw new InvalidOperationException("No sequence found");
+					throw new InvalidOperationException("No sequence found for expression '{expression}'");
 
-				var ordered = chain.Where(c => c.Extension != null).OrderByDescending(c => c.Extension.ChainPrecedence).ToArray();
-				var main    = ordered.FirstOrDefault();
+				var ordered = chain
+					.Select((c, i) => Tuple.Create(c, i))
+					.OrderByDescending(t => t.Item1.Extension?.ChainPrecedence ?? int.MinValue)
+					.ThenByDescending(t => t.Item2)
+					.Select(t => t.Item1)
+					.ToArray();
+
+				var main    = ordered.FirstOrDefault(c => c.Extension != null);
+
 				if (main == null)
 				{
 					var replaced = chain.Where(c => c.Expression != null).ToArray();
 					if (replaced.Length != 1)
-						throw new InvalidOperationException("Can not find root sequence");
+						throw new InvalidOperationException($"Can not find root sequence for expression '{expression}'");
 
-					return replaced[0].Expression;
+					return replaced[0].Expression!;
 				}
 
-				var mainExtension = main.Extension;
+				var mainExtension = main.Extension!;
 
 				// suggesting type
-				var type = chain
-					.Where(c => c.Extension != null)
-					.Select(c => c.Extension.SystemType)
+				var type = ordered
+					.Select(c => c.Extension?.SystemType)
 					.FirstOrDefault(t => t != null && dataContext.MappingSchema.IsScalarType(t));
 
 				if (type == null)
-					type = chain
-						.Where(c => c.Expression != null)
-						.Select(c => c.Expression.SystemType)
+					type = ordered
+						.Select(c => c.Expression?.SystemType)
 						.FirstOrDefault(t => t != null && dataContext.MappingSchema.IsScalarType(t));
 
 				mainExtension.SystemType = type ?? expression.Type;
 
 				// calculating that extension is aggregate
-				var isAggregate = ordered.Any(c => c.Extension.IsAggregate);
+				var isAggregate = ordered.Any(c => c.Extension?.IsAggregate == true);
+				var isPure      = ordered.All(c => c.Extension?.IsPure != false);
 
-				// add parameters in reverse order
-				for (int i = chain.Count - 1; i >= 0; i--)
+				// calculating replacements
+				var replacementMap = ordered
+					.Where(c => c.Extension != mainExtension)
+					.Select((c, i) => Tuple.Create(c, i))
+					.GroupBy(e => e.Item1.Name ?? "")
+					.Select(g => new
+					{
+						Name = g.Key,
+						UnderName = g
+							.OrderByDescending(e => e.Item1.Extension?.ChainPrecedence ?? int.MinValue)
+							.ThenBy(e => e.Item2).Select(e => e.Item1).ToArray()
+					})
+					.ToArray();
+
+				foreach (var c in replacementMap)
 				{
-					var c = chain[i];
-					if (c.Extension == mainExtension)
-						continue;
-					mainExtension.AddParameter(c);
+					var first = c.UnderName[0];
+					if (c.Name == "" || first.Extension == null)
+					{
+						for (var i = 0; i < c.UnderName.Length; i++)
+						{
+							var e = c.UnderName[i];
+							mainExtension.AddParameter(e);
+						}
+					}	
+					else
+					{
+						var firstPrecedence = first.Extension.ChainPrecedence;
+						mainExtension.AddParameter(first);
+						// append all replaced under superior
+						for (int i = 1; i < c.UnderName.Length; i++)
+						{
+							var item = c.UnderName[i];
+							if (firstPrecedence > (item.Extension?.ChainPrecedence ?? int.MinValue))
+								first.Extension.AddParameter(item);
+							else
+								mainExtension.AddParameter(item);
+						}
+					}
 				}
 
 				//TODO: Precedence calculation
-				var res = BuildSqlExpression(mainExtension, mainExtension.SystemType, mainExtension.Precedence, isAggregate, mainExtension.CanBeNull);
+				var res = BuildSqlExpression(mainExtension, mainExtension.SystemType, mainExtension.Precedence, isAggregate, isPure, mainExtension.CanBeNull, IsNullable);
 
 				return res;
 			}

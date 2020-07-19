@@ -12,6 +12,9 @@ namespace LinqToDB.Async
 	/// </summary>
 	[PublicAPI]
 	public interface IAsyncDbTransaction : IDbTransaction
+#if !NET45 && !NET46
+		, IAsyncDisposable
+#endif
 	{
 		/// <summary>
 		/// Commits transaction asynchronously.
@@ -31,5 +34,13 @@ namespace LinqToDB.Async
 		/// Gets underlying transaction instance.
 		/// </summary>
 		IDbTransaction Transaction { get; }
+
+#if NET45 || NET46
+		/// <summary>
+		/// Disposes transaction asynchronously.
+		/// </summary>
+		/// <returns>Asynchronous operation completion task.</returns>
+		Task DisposeAsync();
+#endif
 	}
 }

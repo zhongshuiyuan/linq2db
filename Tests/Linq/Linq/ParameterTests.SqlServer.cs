@@ -6,7 +6,7 @@ using LinqToDB.Data;
 using LinqToDB.Mapping;
 using NUnit.Framework;
 
-#if !NETSTANDARD1_6 && !NETSTANDARD2_0 && !TRAVIS
+#if NET46
 using Tests.FSharp.Models;
 #else
 using Tests.Model;
@@ -19,37 +19,37 @@ namespace Tests.Linq
 		[Table("AllTypes")]
 		class AllTypesWithLength
 		{
-			[Column(                             Length = 1)]  public byte[] VarBinaryDataType;
-			[Column(DataType = DataType.VarChar, Length = 20)] public string VarcharDataType;
-			[Column(                             Length = 20)] public string NVarcharDataType;
+			[Column(                             Length = 1)]  public byte[]? VarBinaryDataType;
+			[Column(DataType = DataType.VarChar, Length = 20)] public string? VarcharDataType;
+			[Column(                             Length = 20)] public string? NVarcharDataType;
 		}
 
 		[Table("AllTypes")]
 		class AllTypesCustom
 		{
-			[Column] public VarBinary VarBinaryDataType;
-			[Column] public VarChar   VarcharDataType;
-			[Column] public NVarChar  NVarcharDataType;
+			[Column] public VarBinary? VarBinaryDataType;
+			[Column] public VarChar?   VarcharDataType;
+			[Column] public NVarChar?  NVarcharDataType;
 		}
 
 		[Table("AllTypes")]
 		class AllTypesCustomWithLength
 		{
-			[Column(Length = 1)]  public VarBinary VarBinaryDataType;
-			[Column(Length = 20)] public VarChar   VarcharDataType;
-			[Column(Length = 20)] public NVarChar  NVarcharDataType;
+			[Column(Length = 1)]  public VarBinary? VarBinaryDataType;
+			[Column(Length = 20)] public VarChar?   VarcharDataType;
+			[Column(Length = 20)] public NVarChar?  NVarcharDataType;
 		}
 
 		class AllTypesCustomMaxLength
 		{
-			public VarBinary VarBinary;
-			public VarChar   VarChar;
-			public NVarChar  NVarChar;
+			public VarBinary? VarBinary;
+			public VarChar?   VarChar;
+			public NVarChar?  NVarChar;
 		}
 
 		class VarChar : CustomBase<string>
 		{
-			public override string ToString(IFormatProvider provider)
+			public override string ToString(IFormatProvider? provider)
 			{
 				return Value;
 			}
@@ -57,7 +57,7 @@ namespace Tests.Linq
 
 		class NVarChar : CustomBase<string>
 		{
-			public override string ToString(IFormatProvider provider)
+			public override string ToString(IFormatProvider? provider)
 			{
 				return Value;
 			}
@@ -65,7 +65,7 @@ namespace Tests.Linq
 
 		class VarBinary : CustomBase<byte[]>
 		{
-			public override object ToType(Type conversionType, IFormatProvider provider)
+			public override object ToType(Type conversionType, IFormatProvider? provider)
 			{
 				if (conversionType == typeof(byte[]))
 					return Value;
@@ -76,89 +76,89 @@ namespace Tests.Linq
 
 		abstract class CustomBase<TValue> : IConvertible
 		{
-			public TValue Value { get; set; }
+			public TValue Value { get; set; } = default!;
 
 			TypeCode IConvertible.GetTypeCode()
 			{
 				throw new NotImplementedException();
 			}
 
-			bool IConvertible.ToBoolean(IFormatProvider provider)
+			bool IConvertible.ToBoolean(IFormatProvider? provider)
 			{
 				throw new NotImplementedException();
 			}
 
-			byte IConvertible.ToByte(IFormatProvider provider)
+			byte IConvertible.ToByte(IFormatProvider? provider)
 			{
 				throw new NotImplementedException();
 			}
 
-			char IConvertible.ToChar(IFormatProvider provider)
+			char IConvertible.ToChar(IFormatProvider? provider)
 			{
 				throw new NotImplementedException();
 			}
 
-			DateTime IConvertible.ToDateTime(IFormatProvider provider)
+			DateTime IConvertible.ToDateTime(IFormatProvider? provider)
 			{
 				throw new NotImplementedException();
 			}
 
-			decimal IConvertible.ToDecimal(IFormatProvider provider)
+			decimal IConvertible.ToDecimal(IFormatProvider? provider)
 			{
 				throw new NotImplementedException();
 			}
 
-			double IConvertible.ToDouble(IFormatProvider provider)
+			double IConvertible.ToDouble(IFormatProvider? provider)
 			{
 				throw new NotImplementedException();
 			}
 
-			short IConvertible.ToInt16(IFormatProvider provider)
+			short IConvertible.ToInt16(IFormatProvider? provider)
 			{
 				throw new NotImplementedException();
 			}
 
-			int IConvertible.ToInt32(IFormatProvider provider)
+			int IConvertible.ToInt32(IFormatProvider? provider)
 			{
 				throw new NotImplementedException();
 			}
 
-			long IConvertible.ToInt64(IFormatProvider provider)
+			long IConvertible.ToInt64(IFormatProvider? provider)
 			{
 				throw new NotImplementedException();
 			}
 
-			sbyte IConvertible.ToSByte(IFormatProvider provider)
+			sbyte IConvertible.ToSByte(IFormatProvider? provider)
 			{
 				throw new NotImplementedException();
 			}
 
-			float IConvertible.ToSingle(IFormatProvider provider)
+			float IConvertible.ToSingle(IFormatProvider? provider)
 			{
 				throw new NotImplementedException();
 			}
 
-			public virtual string ToString(IFormatProvider provider)
+			public virtual string ToString(IFormatProvider? provider)
 			{
 				throw new NotImplementedException();
 			}
 
-			public virtual object ToType(Type conversionType, IFormatProvider provider)
+			public virtual object ToType(Type conversionType, IFormatProvider? provider)
 			{
 				throw new NotImplementedException();
 			}
 
-			ushort IConvertible.ToUInt16(IFormatProvider provider)
+			ushort IConvertible.ToUInt16(IFormatProvider? provider)
 			{
 				throw new NotImplementedException();
 			}
 
-			uint IConvertible.ToUInt32(IFormatProvider provider)
+			uint IConvertible.ToUInt32(IFormatProvider? provider)
 			{
 				throw new NotImplementedException();
 			}
 
-			ulong IConvertible.ToUInt64(IFormatProvider provider)
+			ulong IConvertible.ToUInt64(IFormatProvider? provider)
 			{
 				throw new NotImplementedException();
 			}
@@ -426,7 +426,7 @@ namespace Tests.Linq
 		}
 
 		[Test]
-		public void SqlServerCustomNVarCharMaxOverflowParameterSize([IncludeDataSources(TestProvName.AllSqlServer)] string context)
+		public void SqlServerCustomNVarCharMaxOverflowParameterSize([IncludeDataSources(TestProvName.AllSqlServer2005Plus)] string context)
 		{
 			using (var db = new DataConnection(context, new MappingSchema()))
 			{
@@ -441,18 +441,18 @@ namespace Tests.Linq
 
 					var records = table.ToList();
 					var p = new NVarChar() { Value = value };
-					var sql = table.Where(t => t.NVarChar == p).ToString();
+					var sql = table.Where(t => t.NVarChar == p).ToString()!;
 
 					Assert.AreEqual(1, records.Count);
 					Assert.IsNotNull(records[0].NVarChar);
-					Assert.AreEqual(value, records[0].NVarChar.Value);
+					Assert.AreEqual(value, records[0].NVarChar!.Value);
 					Assert.That(sql.Contains("NVarChar -- String"));
 				}
 			}
 		}
 
 		[Test]
-		public void SqlServerCustomVarCharMaxOverflowParameterSize([IncludeDataSources(TestProvName.AllSqlServer)] string context)
+		public void SqlServerCustomVarCharMaxOverflowParameterSize([IncludeDataSources(TestProvName.AllSqlServer2005Plus)] string context)
 		{
 			using (var db = new DataConnection(context, new MappingSchema()))
 			{
@@ -471,14 +471,14 @@ namespace Tests.Linq
 
 					Assert.AreEqual(1, records.Count);
 					Assert.IsNotNull(records[0].VarChar);
-					Assert.AreEqual(value, records[0].VarChar.Value);
+					Assert.AreEqual(value, records[0].VarChar!.Value);
 					Assert.That(sql, Contains.Substring(" VarChar -- AnsiString"));
 				}
 			}
 		}
 
 		[Test]
-		public void SqlServerCustomVarBinaryMaxOverflowParameterSize([IncludeDataSources(TestProvName.AllSqlServer)] string context)
+		public void SqlServerCustomVarBinaryMaxOverflowParameterSize([IncludeDataSources(TestProvName.AllSqlServer2005Plus)] string context)
 		{
 			using (var db = new DataConnection(context, new MappingSchema()))
 			{
@@ -496,11 +496,11 @@ namespace Tests.Linq
 
 					var records = table.ToList();
 					var p = new VarBinary() { Value = value };
-					var sql = table.Where(t => t.VarBinary == p).ToString();
+					var sql = table.Where(t => t.VarBinary == p).ToString()!;
 
 					Assert.AreEqual(1, records.Count);
 					Assert.IsNotNull(records[0].VarBinary);
-					Assert.AreEqual(value, records[0].VarBinary.Value);
+					Assert.AreEqual(value, records[0].VarBinary!.Value);
 					Assert.That(sql.Contains("VarBinary -- Binary"));
 				}
 			}
@@ -642,7 +642,7 @@ namespace Tests.Linq
 		}
 
 		[Test]
-		public void SqlServerCustomNVarCharMaxOverflowParameterSizeAsDataParameter([IncludeDataSources(TestProvName.AllSqlServer)] string context)
+		public void SqlServerCustomNVarCharMaxOverflowParameterSizeAsDataParameter([IncludeDataSources(TestProvName.AllSqlServer2005Plus)] string context)
 		{
 			using (var db = new DataConnection(context, new MappingSchema()))
 			{
@@ -657,18 +657,18 @@ namespace Tests.Linq
 
 					var records = table.ToList();
 					var p = new NVarChar() { Value = value };
-					var sql = table.Where(t => t.NVarChar == p).ToString();
+					var sql = table.Where(t => t.NVarChar == p).ToString()!;
 
 					Assert.AreEqual(1, records.Count);
 					Assert.IsNotNull(records[0].NVarChar);
-					Assert.AreEqual(value, records[0].NVarChar.Value);
+					Assert.AreEqual(value, records[0].NVarChar!.Value);
 					Assert.That(sql.Contains("NVarChar(5000) -- String"));
 				}
 			}
 		}
 
 		[Test]
-		public void SqlServerCustomVarCharMaxOverflowParameterSizeAsDataParameter([IncludeDataSources(TestProvName.AllSqlServer)] string context)
+		public void SqlServerCustomVarCharMaxOverflowParameterSizeAsDataParameter([IncludeDataSources(TestProvName.AllSqlServer2005Plus)] string context)
 		{
 			using (var db = new DataConnection(context, new MappingSchema()))
 			{
@@ -683,18 +683,18 @@ namespace Tests.Linq
 
 					var records = table.ToList();
 					var p = new VarChar() { Value = value };
-					var sql = table.Where(t => t.VarChar == p).ToString();
+					var sql = table.Where(t => t.VarChar == p).ToString()!;
 
 					Assert.AreEqual(1, records.Count);
 					Assert.IsNotNull(records[0].VarChar);
-					Assert.AreEqual(value, records[0].VarChar.Value);
+					Assert.AreEqual(value, records[0].VarChar!.Value);
 					Assert.That(sql.Contains(" VarChar(10000) -- AnsiString"));
 				}
 			}
 		}
 
 		[Test]
-		public void SqlServerCustomVarBinaryMaxOverflowParameterSizeAsDataParameter([IncludeDataSources(TestProvName.AllSqlServer)] string context)
+		public void SqlServerCustomVarBinaryMaxOverflowParameterSizeAsDataParameter([IncludeDataSources(TestProvName.AllSqlServer2005Plus)] string context)
 		{
 			using (var db = new DataConnection(context, new MappingSchema()))
 			{
@@ -712,11 +712,11 @@ namespace Tests.Linq
 
 					var records = table.ToList();
 					var p = new VarBinary() { Value = value };
-					var sql = table.Where(t => t.VarBinary == p).ToString();
+					var sql = table.Where(t => t.VarBinary == p).ToString()!;
 
 					Assert.AreEqual(1, records.Count);
 					Assert.IsNotNull(records[0].VarBinary);
-					Assert.AreEqual(value, records[0].VarBinary.Value);
+					Assert.AreEqual(value, records[0].VarBinary!.Value);
 					Assert.That(sql.Contains("VarBinary(10000) -- Binary"));
 				}
 			}
@@ -733,18 +733,18 @@ namespace Tests.Linq
 				ms.SetConvertExpression<string, VarChar>  (v => new VarChar()   { Value = v });
 				ms.SetConvertExpression<string, NVarChar> (v => new NVarChar()  { Value = v });
 				ms.SetConvertExpression<byte[], VarBinary>(v => new VarBinary() { Value = v });
-				ms.SetConvertExpression<VarChar, string>  (v => v == null ? null : v.Value);
-				ms.SetConvertExpression<NVarChar, string> (v => v == null ? null : v.Value);
-				ms.SetConvertExpression<VarBinary, byte[]>(v => v == null ? null : v.Value);
+				ms.SetConvertExpression<VarChar?, string?>  (v => v == null ? null : v.Value);
+				ms.SetConvertExpression<NVarChar?, string?> (v => v == null ? null : v.Value);
+				ms.SetConvertExpression<VarBinary?, byte[]?>(v => v == null ? null : v.Value);
 			}
 			else
 			{
 				ms.SetConvertExpression<string, VarChar>  (v => new VarChar()   { Value = v });
 				ms.SetConvertExpression<string, NVarChar> (v => new NVarChar()  { Value = v });
 				ms.SetConvertExpression<byte[], VarBinary>(v => new VarBinary() { Value = v });
-				ms.SetConvertExpression<VarChar, DataParameter>  (v => v == null ? null : DataParameter.VarChar(null, v.Value));
-				ms.SetConvertExpression<NVarChar, DataParameter> (v => v == null ? null : DataParameter.NVarChar(null, v.Value));
-				ms.SetConvertExpression<VarBinary, DataParameter>(v => v == null ? null : DataParameter.VarBinary(null, v.Value));
+				ms.SetConvertExpression<VarChar?, DataParameter?>  (v => v == null ? null : DataParameter.VarChar(null, v.Value));
+				ms.SetConvertExpression<NVarChar?, DataParameter?> (v => v == null ? null : DataParameter.NVarChar(null, v.Value));
+				ms.SetConvertExpression<VarBinary?, DataParameter?>(v => v == null ? null : DataParameter.VarBinary(null, v.Value));
 			}
 		}
 	}

@@ -21,9 +21,7 @@ namespace LinqToDB.Async
 		/// This API supports the LinqToDB infrastructure and is not intended to be used  directly from your code.
 		/// This API may change or be removed in future releases.
 		/// </summary>
-		public static IAsyncEnumerable<TSource> AsAsyncEnumerable<TSource>(
-			[NotNull] this IQueryable<TSource> source,
-			CancellationToken                  cancellationToken = default)
+		public static IAsyncEnumerable<TSource> AsAsyncEnumerable<TSource>(this IQueryable<TSource> source)
 		{
 			if (source == null) throw new ArgumentNullException(nameof(source));
 
@@ -57,15 +55,20 @@ namespace LinqToDB.Async
 		/// This API may change or be removed in future releases.
 		/// </summary>
 		public static async Task<List<T>> ToListAsync<T>(
-			[NotNull] this IAsyncEnumerable<T> source, 
-			CancellationToken                  cancellationToken = default)
+			this IAsyncEnumerable<T> source, 
+			CancellationToken        cancellationToken = default)
 		{
 			if (source == null) throw new ArgumentNullException(nameof(source));
 
 			var result = new List<T>();
-			using (var enumerator = source.GetEnumerator())
+#if NET45 || NET46
+			using (var enumerator = source.GetAsyncEnumerator(cancellationToken))
+#else
+			var enumerator = source.GetAsyncEnumerator(cancellationToken);
+			await using (enumerator.ConfigureAwait(Common.Configuration.ContinueOnCapturedContext))
+#endif
 			{
-				while (await enumerator.MoveNext(cancellationToken).ConfigureAwait(Common.Configuration.ContinueOnCapturedContext))
+				while (await enumerator.MoveNextAsync().ConfigureAwait(Common.Configuration.ContinueOnCapturedContext))
 				{
 					result.Add(enumerator.Current);
 				}
@@ -95,8 +98,8 @@ namespace LinqToDB.Async
 		/// This API may change or be removed in future releases.
 		/// </summary>
 		public static async Task<T[]> ToArrayAsync<T>(
-			[NotNull] this IAsyncEnumerable<T> source, 
-			CancellationToken                  cancellationToken = default)
+			this IAsyncEnumerable<T> source, 
+			CancellationToken        cancellationToken = default)
 		{
 			return (await source.ToListAsync(cancellationToken).ConfigureAwait(Common.Configuration.ContinueOnCapturedContext)).ToArray();
 		}
@@ -123,17 +126,48 @@ namespace LinqToDB.Async
 		/// This API may change or be removed in future releases.
 		/// </summary>
 		public static async Task<T> FirstOrDefaultAsync<T>(
-			[NotNull] this IAsyncEnumerable<T> source, 
-			CancellationToken                  cancellationToken = default)
+			this IAsyncEnumerable<T> source, 
+			CancellationToken        cancellationToken = default)
 		{
 			if (source == null) throw new ArgumentNullException(nameof(source));
 
-			using (var enumerator = source.GetEnumerator())
+#if NET45 || NET46
+			using (var enumerator = source.GetAsyncEnumerator(cancellationToken))
+#else
+			var enumerator = source.GetAsyncEnumerator(cancellationToken);
+			await using (enumerator.ConfigureAwait(Common.Configuration.ContinueOnCapturedContext))
+#endif
 			{
-				if (await enumerator.MoveNext(cancellationToken).ConfigureAwait(Common.Configuration.ContinueOnCapturedContext))
+				if (await enumerator.MoveNextAsync().ConfigureAwait(Common.Configuration.ContinueOnCapturedContext))
 					return enumerator.Current;
-				return default;
+				return default!;
 			}
+		}
+
+		/// <summary>Returns the first element of a sequence.</summary>
+		/// <param name="source">The <see cref="T:System.Collections.Generic.IEnumerable`1" /> to return the first element of.</param>
+		/// <param name="token">Cancellation token</param>
+		/// <typeparam name="TSource">The type of the elements of <paramref name="source" />.</typeparam>
+		/// <returns>The first element in the specified sequence.</returns>
+		/// <exception cref="T:System.ArgumentNullException">
+		/// <paramref name="source" /> is <see langword="null" />.</exception>
+		/// <exception cref="T:System.InvalidOperationException">The source sequence is empty.</exception>
+		public static async Task<TSource> FirstAsync<TSource>(this IAsyncEnumerable<TSource> source, CancellationToken token = default)
+		{
+			if (source == null) throw new ArgumentNullException(nameof(source));
+
+#if NET45 || NET46
+			using (var enumerator = source.GetAsyncEnumerator(token))
+#else
+			var enumerator = source.GetAsyncEnumerator(token);
+			await using (enumerator.ConfigureAwait(Common.Configuration.ContinueOnCapturedContext))
+#endif
+			{
+				if (await enumerator.MoveNextAsync().ConfigureAwait(Common.Configuration.ContinueOnCapturedContext))
+					return enumerator.Current;
+			}
+
+			throw new InvalidOperationException("The source sequence is empty.");
 		}
 
 	}

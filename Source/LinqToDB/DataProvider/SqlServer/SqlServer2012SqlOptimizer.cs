@@ -1,62 +1,41 @@
-﻿using System;
+﻿using LinqToDB.SqlQuery;
 
 namespace LinqToDB.DataProvider.SqlServer
 {
 	using SqlProvider;
-	using SqlQuery;
 
 	class SqlServer2012SqlOptimizer : SqlServerSqlOptimizer
 	{
-		public SqlServer2012SqlOptimizer(SqlProviderFlags sqlProviderFlags) : base(sqlProviderFlags)
+		public SqlServer2012SqlOptimizer(SqlProviderFlags sqlProviderFlags) : this(sqlProviderFlags, SqlServerVersion.v2012)
 		{
 		}
 
-		public override SqlStatement Finalize(SqlStatement statement)
+		protected SqlServer2012SqlOptimizer(SqlProviderFlags sqlProviderFlags, SqlServerVersion version) : base(sqlProviderFlags, version)
 		{
-			var result = base.Finalize(statement);
-			if (result.SelectQuery != null)
-				CorrectSkip(result.SelectQuery);
-			return result;
 		}
 
-		private void CorrectSkip(SelectQuery selectQuery)
+		public override SqlStatement TransformStatement(SqlStatement statement)
 		{
-			((ISqlExpressionWalkable)selectQuery).Walk(new WalkOptions(), e =>
-			{
-				if (e is SelectQuery q && q.Select.SkipValue != null && SqlProviderFlags.GetIsSkipSupportedFlag(q) && q.OrderBy.IsEmpty)
-				{
-					if (q.Select.Columns.Count == 0)
-					{
-						var source = q.Select.From.Tables[0].Source;
-						var keys = source.GetKeys(true);
+			// SQL Server 2012 supports OFFSET/FETCH providing there is an ORDER BY
+			// UPDATE queries do not directly support ORDER BY, TOP, OFFSET, or FETCH, but they are supported in subqueries
 
-						foreach (var key in keys)
-						{
-							q.Select.AddNew(key);
-						}
-					}
+			if (statement.IsUpdate() || statement.IsDelete()) statement = WrapRootTakeSkipOrderBy(statement);
+			statement = AddOrderByForSkip(statement);
 
-					for (var i = 0; i < q.Select.Columns.Count; i++)
-						q.OrderBy.ExprAsc(new SqlValue(i + 1));
-
-					if (q.OrderBy.IsEmpty)
-					{
-						throw new LinqToDBException("Order by required for Skip operation.");
-					}
-				}
-				return e;
-			}
-			);
+			return statement;
 		}
 
-		public override ISqlExpression ConvertExpression(ISqlExpression expr)
+		/// <summary>
+		/// Adds an ORDER BY clause to queries using OFFSET/FETCH, if none exists
+		/// </summary>
+		protected SqlStatement AddOrderByForSkip(SqlStatement statement)
 		{
-			expr = base.ConvertExpression(expr);
-
-			if (expr is SqlFunction function)
-				return ConvertConvertFunction(function);
-
-			return expr;
+			ConvertVisitor.Convert(statement, (visitor, element) => {
+				if (element is SelectQuery query && query.Select.SkipValue != null && query.OrderBy.IsEmpty)
+					query.OrderBy.ExprAsc(new SqlValue(typeof(int), 1));
+				return element;
+			});
+			return statement;
 		}
 	}
 }

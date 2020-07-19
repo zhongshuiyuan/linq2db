@@ -12,8 +12,8 @@ namespace Tests.xUpdate
 
 	public partial class MergeTests
 	{
-		[Test, Parallelizable(ParallelScope.None)]
-		public void ImplicitIdentityInsert([IdentityInsertMergeDataContextSource] string context)
+		[Test]
+		public void ImplicitIdentityInsert([IdentityInsertMergeDataContextSource(false)] string context)
 		{
 			using (var db = new TestDataConnection(context))
 			using (db.BeginTransaction())
@@ -56,8 +56,9 @@ namespace Tests.xUpdate
 		}
 
 		// ASE: server dies
-		[Test, Parallelizable(ParallelScope.None)]
+		[Test]
 		public void ExplicitIdentityInsert([IdentityInsertMergeDataContextSource(
+			false,
 			ProviderName.Sybase, ProviderName.SybaseManaged)]
 			string context)
 		{
@@ -73,7 +74,7 @@ namespace Tests.xUpdate
 					.Using(db.Person)
 					.On((t, s) => t.ID == s.ID && t.FirstName != "first 3")
 					.InsertWhenNotMatchedAnd(
-						s => s.Patient.Diagnosis.Contains("sick")
+						s => s.Patient!.Diagnosis.Contains("sick")
 						, s => new Model.Person()
 						{
 							ID = nextId + 1,
@@ -105,8 +106,9 @@ namespace Tests.xUpdate
 		}
 
 		// ASE: server dies
-		[Test, Parallelizable(ParallelScope.None)]
+		[Test]
 		public void ExplicitNoIdentityInsert([IdentityInsertMergeDataContextSource(
+			false,
 			ProviderName.Sybase, ProviderName.SybaseManaged)]
 			string context)
 		{
@@ -122,7 +124,7 @@ namespace Tests.xUpdate
 					.Using(db.Person)
 					.On((t, s) => t.ID == s.ID && t.FirstName != "first 3")
 					.InsertWhenNotMatchedAnd(
-						s => s.Patient.Diagnosis.Contains("sick"),
+						s => s.Patient!.Diagnosis.Contains("sick"),
 						s => new Model.Person()
 						{
 							FirstName = "Inserted 1",
@@ -155,11 +157,11 @@ namespace Tests.xUpdate
 		// see https://github.com/linq2db/linq2db/issues/914
 		// rationale:
 		// we shouldn't ignore SkipOnInsert attribute for insert operation with implicit field list
-		[Test, Parallelizable(ParallelScope.None)]
+		[Test]
 		public void ImplicitInsertIdentityWithSkipOnInsert(
 			[IdentityInsertMergeDataContextSource] string context)
 		{
-			using (var db = new TestDataConnection(context))
+			using (var db = GetDataContext(context))
 			{
 				var table = db.GetTable<TestMappingWithIdentity>();
 				table.Delete();

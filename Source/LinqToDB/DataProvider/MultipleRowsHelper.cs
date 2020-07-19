@@ -31,8 +31,8 @@ namespace LinqToDB.DataProvider
 			Columns        = Descriptor.Columns
 				.Where(c => !c.SkipOnInsert || c.IsIdentity && options.KeepIdentity == true)
 				.ToArray();
-			ColumnTypes    = Columns.Select(c => new SqlDataType(c.DataType, c.MemberType, c.Length, c.Precision, c.Scale)).ToArray();
-			ParameterName  = SqlBuilder.Convert("p", ConvertType.NameToQueryParameter).ToString();
+			ColumnTypes    = Columns.Select(c => new SqlDataType(c)).ToArray();
+			ParameterName  = SqlBuilder.ConvertInline("p", ConvertType.NameToQueryParameter);
 			BatchSize      = Math.Max(10, Options.MaxBatchSize ?? 1000);
 		}
 
@@ -43,7 +43,7 @@ namespace LinqToDB.DataProvider
 		public readonly EntityDescriptor    Descriptor;
 		public readonly ColumnDescriptor[]  Columns;
 		public readonly SqlDataType[]       ColumnTypes;
-		public          string              TableName;
+		public          string?             TableName;
 		public readonly string              ParameterName;
 
 		public readonly List<DataParameter> Parameters    = new List<DataParameter>();
@@ -60,14 +60,14 @@ namespace LinqToDB.DataProvider
 			HeaderSize = StringBuilder.Length;
 		}
 
-		public virtual void BuildColumns(object item, Func<ColumnDescriptor, bool> skipConvert = null)
+		public virtual void BuildColumns(object item, Func<ColumnDescriptor, bool>? skipConvert = null)
 		{
 			skipConvert = skipConvert ?? (_ => false);
 
 			for (var i = 0; i < Columns.Length; i++)
 			{
 				var column = Columns[i];
-				var value  = column.GetValue(DataConnection.MappingSchema, item);
+				var value  = column.GetValue(item);
 
 				if (skipConvert(column) || !ValueConverter.TryConvert(StringBuilder, ColumnTypes[i], value))
 				{
@@ -81,7 +81,9 @@ namespace LinqToDB.DataProvider
 					Parameters.Add(new DataParameter(ParameterName == "?" ? ParameterName : "p" + ParameterIndex, value,
 						column.DataType, column.DbType)
 					{
-						Size = column.Length
+						Size      = column.Length,
+						Precision = column.Precision,
+						Scale     = column.Scale
 					});
 				}
 

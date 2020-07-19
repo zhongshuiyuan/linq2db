@@ -48,9 +48,11 @@ namespace Tests.Samples
 				set => _context.InlineParameters = value;
 			}
 
-#pragma warning disable 0067
-			public event EventHandler OnClosing;
-#pragma warning restore 0067
+			event EventHandler? IDataContext.OnClosing
+			{
+				add { }
+				remove { }
+			}
 
 			public IDataContext Clone(bool forNestedQuery)
 			{
@@ -67,14 +69,14 @@ namespace Tests.Samples
 				_context.Dispose();
 			}
 
-			public IQueryRunner GetQueryRunner(Query query, int queryNumber, Expression expression, object[] parameters)
+			public IQueryRunner GetQueryRunner(Query query, int queryNumber, Expression expression, object?[]? parameters, object?[]? preambles)
 			{
-				return _context.GetQueryRunner(query, queryNumber, expression, parameters);
+				return _context.GetQueryRunner(query, queryNumber, expression, parameters, preambles);
 			}
 
-			public Expression GetReaderExpression(MappingSchema mappingSchema, IDataReader reader, int idx, Expression readerExpression, Type toType)
+			public Expression GetReaderExpression(IDataReader reader, int idx, Expression readerExpression, Type toType)
 			{
-				return _context.GetReaderExpression(mappingSchema, reader, idx, readerExpression, toType);
+				return _context.GetReaderExpression(reader, idx, readerExpression, toType);
 			}
 
 			public bool? IsDBNullAllowed(IDataReader reader, int idx)
@@ -82,13 +84,13 @@ namespace Tests.Samples
 				return _context.IsDBNullAllowed(reader, idx);
 			}
 
-			public Action<EntityCreatedEventArgs> OnEntityCreated { get; set; }
+			public Action<EntityCreatedEventArgs>? OnEntityCreated { get; set; }
 		}
 
 		public class Entity
 		{
-			public int    Id;
-			public string Name;
+			public int     Id;
+			public string? Name;
 		}
 
 //		[Test]
@@ -105,7 +107,7 @@ namespace Tests.Samples
 					.Property(_ => _.Name).HasColumnName("EntityName");
 
 				var q1 = db.GetTable<Entity>().Select(_ => _).ToString();
-				var q2 = dc.GetTable<Entity>().Select(_ => _).ToString();
+				var q2 = dc.GetTable<Entity>().Select(_ => _).ToString()!;
 
 				Assert.AreNotEqual(q1, q2);
 				Assert.That(q2.Contains("EntityId"));

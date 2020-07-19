@@ -30,7 +30,7 @@ namespace LinqToDB.SqlQuery
 
 		#region Overrides
 
-		public string SqlText => ToString();
+		public string SqlText => ToString()!;
 
 #if OVERRIDETOSTRING
 
@@ -47,8 +47,8 @@ namespace LinqToDB.SqlQuery
 
 		ISqlExpression ISqlExpressionWalkable.Walk(WalkOptions options, Func<ISqlExpression,ISqlExpression> func)
 		{
-			Expr1 = Expr1.Walk(options, func);
-			Expr2 = Expr2.Walk(options, func);
+			Expr1 = Expr1.Walk(options, func)!;
+			Expr2 = Expr2.Walk(options, func)!;
 
 			return func(this);
 		}
@@ -57,18 +57,29 @@ namespace LinqToDB.SqlQuery
 
 		#region IEquatable<ISqlExpression> Members
 
-		bool IEquatable<ISqlExpression>.Equals(ISqlExpression other)
+		bool IEquatable<ISqlExpression>.Equals(ISqlExpression? other)
 		{
 			return Equals(other, SqlExpression.DefaultComparer);
 		}
 
 		#endregion
 
+		public override int GetHashCode()
+		{
+			var hashCode = Operation.GetHashCode();
+
+			hashCode = unchecked(hashCode + (hashCode * 397) ^ SystemType.GetHashCode());
+			hashCode = unchecked(hashCode + (hashCode * 397) ^ Expr1.GetHashCode());
+			hashCode = unchecked(hashCode + (hashCode * 397) ^ Expr2.GetHashCode());
+
+			return hashCode;
+		}
+
 		#region ISqlExpression Members
 
 		public bool CanBeNull => Expr1.CanBeNull || Expr2.CanBeNull;
 
-		public bool Equals(ISqlExpression other, Func<ISqlExpression,ISqlExpression,bool> comparer)
+		public bool Equals(ISqlExpression? other, Func<ISqlExpression,ISqlExpression,bool> comparer)
 		{
 			if (this == other)
 				return true;

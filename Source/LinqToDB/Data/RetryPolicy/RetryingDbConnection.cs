@@ -27,7 +27,7 @@ namespace LinqToDB.Data.RetryPolicy
 
 		protected override DbTransaction BeginDbTransaction(IsolationLevel isolationLevel)
 		{
-			return _dbConnection.BeginTransaction();
+			return _dbConnection.BeginTransaction(isolationLevel);
 		}
 
 		public override void Close()
@@ -62,11 +62,7 @@ namespace LinqToDB.Data.RetryPolicy
 			return new RetryingDbCommand(_dbConnection.CreateCommand(), _policy);
 		}
 
-		public
-#if !NET40
-			override
-#endif
-			async Task OpenAsync(CancellationToken cancellationToken)
+		public override async Task OpenAsync(CancellationToken cancellationToken)
 		{
 			await _policy.ExecuteAsync(async ct => await _connection.OpenAsync(ct).ConfigureAwait(Common.Configuration.ContinueOnCapturedContext), cancellationToken).ConfigureAwait(Common.Configuration.ContinueOnCapturedContext);
 		}
@@ -78,7 +74,6 @@ namespace LinqToDB.Data.RetryPolicy
 
 		public DbConnection UnderlyingObject => _dbConnection;
 
-#if !NETSTANDARD1_6
 		public override DataTable GetSchema()
 		{
 			return _dbConnection.GetSchema();
@@ -99,7 +94,6 @@ namespace LinqToDB.Data.RetryPolicy
 			get => _dbConnection.Site;
 			set => _dbConnection.Site = value;
 		}
-#endif
 
 		public override int ConnectionTimeout => _connection.ConnectionTimeout;
 
@@ -116,22 +110,51 @@ namespace LinqToDB.Data.RetryPolicy
 		{
 			if (_connection is ICloneable cloneable)
 				return cloneable.Clone();
-			return _dataConnection.DataProvider.CreateConnection(_dataConnection.ConnectionString);
+			return _dataConnection.DataProvider.CreateConnection(_dataConnection.ConnectionString!);
 		}
 
+#if NET45 || NET46
 		public Task<IAsyncDbTransaction> BeginTransactionAsync(CancellationToken cancellationToken = default)
-		{
-			return _connection.BeginTransactionAsync(cancellationToken);
-		}
+			=> _connection.BeginTransactionAsync(cancellationToken);
 
 		public Task<IAsyncDbTransaction> BeginTransactionAsync(IsolationLevel isolationLevel, CancellationToken cancellationToken = default)
+			=> _connection.BeginTransactionAsync(isolationLevel, cancellationToken);
+#elif NETSTANDARD2_0 || NETCOREAPP2_1
+		public ValueTask<IAsyncDbTransaction> BeginTransactionAsync(CancellationToken cancellationToken = default)
+			=> _connection.BeginTransactionAsync(cancellationToken);
+
+		public ValueTask<IAsyncDbTransaction> BeginTransactionAsync(IsolationLevel isolationLevel, CancellationToken cancellationToken = default)
+			=> _connection.BeginTransactionAsync(isolationLevel, cancellationToken);
+#else
+		public new ValueTask<IAsyncDbTransaction> BeginTransactionAsync(CancellationToken cancellationToken = default)
+			=> _connection.BeginTransactionAsync(cancellationToken);
+
+		public new ValueTask<IAsyncDbTransaction> BeginTransactionAsync(IsolationLevel isolationLevel, CancellationToken cancellationToken = default)
+			=> _connection.BeginTransactionAsync(isolationLevel, cancellationToken);
+
+		protected override ValueTask<DbTransaction> BeginDbTransactionAsync(IsolationLevel isolationLevel, CancellationToken cancellationToken)
+			=> _dbConnection.BeginTransactionAsync(isolationLevel, cancellationToken);
+#endif
+
+
+#if !NETSTANDARD2_1 && !NETCOREAPP3_1
+		public Task CloseAsync()
+#else
+		public override Task CloseAsync()
+#endif
 		{
-			return _connection.BeginTransactionAsync(isolationLevel, cancellationToken);
+			return _connection.CloseAsync();
 		}
 
-		public Task CloseAsync(CancellationToken cancellationToken = default)
+#if NET45 || NET46
+		public Task DisposeAsync()
+#elif NETSTANDARD2_0 || NETCOREAPP2_1
+		public ValueTask DisposeAsync()
+#else
+		public override ValueTask DisposeAsync()
+#endif
 		{
-			return _connection.CloseAsync(cancellationToken);
+			return _connection.DisposeAsync();
 		}
 
 		public IAsyncDbConnection TryClone()

@@ -8,8 +8,12 @@ namespace LinqToDB.Linq
 
 	class MemberInfoComparer : IEqualityComparer<MemberInfo>
 	{
-		public bool Equals(MemberInfo x, MemberInfo y)
+		public static MemberInfoComparer Instance = new MemberInfoComparer();
+
+		public bool Equals(MemberInfo? x, MemberInfo? y)
 		{
+			if (x == null && y == null) return true;
+			if (x == null || y == null) return false;
 			return x.EqualsTo(y);
 		}
 

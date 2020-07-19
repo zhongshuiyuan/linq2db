@@ -1,5 +1,4 @@
-﻿using System;
-using System.Linq;
+﻿using System.Linq;
 
 using LinqToDB;
 using LinqToDB.Mapping;
@@ -18,7 +17,7 @@ namespace Tests.Linq
 			public int Id { get; set; }
 
 			[Column]
-			public string DuplicateData { get; set; }
+			public string? DuplicateData { get; set; }
 
 			[Column]
 			public int OrderData1 { get; set; }
@@ -180,6 +179,7 @@ namespace Tests.Linq
 			}
 		}
 
+		// if this test fails for mysql, check that you have no ONLY_FULL_GROUP_BY option set
 		[Test]
 		public void OrderByDistinctTest([DataSources(ProviderName.SqlCe)] string context)
 		{

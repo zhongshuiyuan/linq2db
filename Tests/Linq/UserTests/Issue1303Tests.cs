@@ -15,13 +15,13 @@ namespace Tests.UserTests
 			[PrimaryKey]
 			public int    ID     { get; set; }
 			[Column(Length = 10)]
-			public byte[] Array  { get; set; }
+			public byte[]? Array  { get; set; }
 			[Column(Length = 10)]
-			public Binary Binary { get; set; }
+			public Binary? Binary { get; set; }
 		}
 
 		[Test]
-		public void TestBinary([DataSources] string context, [Values] bool inlineParameters)
+		public void TestBinary([DataSources(ProviderName.SqlServer2000)] string context, [Values] bool inlineParameters)
 		{
 			using (var db  = GetDataContext(context))
 			using (var tbl = db.CreateLocalTable<Issue1303>())
@@ -43,7 +43,7 @@ namespace Tests.UserTests
 
 				Assert.AreEqual(1, byId.ID);
 				Assert.True(new byte[] { 1, 2, 3 }.SequenceEqual(byId.Array));
-				Assert.True(new byte[] { 4, 5 }   .SequenceEqual(byId.Binary.ToArray()));
+				Assert.True(new byte[] { 4, 5 }   .SequenceEqual(byId.Binary!.ToArray()));
 
 				// Informix: doesn't support blobs in conditions
 				if (!context.StartsWith("Informix"))
@@ -53,11 +53,11 @@ namespace Tests.UserTests
 
 					Assert.AreEqual(1, byArray.ID);
 					Assert.True(new byte[] { 1, 2, 3 }.SequenceEqual(byArray.Array));
-					Assert.True(new byte[] { 4, 5 }   .SequenceEqual(byArray.Binary.ToArray()));
+					Assert.True(new byte[] { 4, 5 }   .SequenceEqual(byArray.Binary!.ToArray()));
 
 					Assert.AreEqual(1, byBinary.ID);
 					Assert.True(new byte[] { 1, 2, 3 }.SequenceEqual(byBinary.Array));
-					Assert.True(new byte[] { 4, 5 }   .SequenceEqual(byBinary.Binary.ToArray()));
+					Assert.True(new byte[] { 4, 5 }   .SequenceEqual(byBinary.Binary!.ToArray()));
 				}
 			}
 		}

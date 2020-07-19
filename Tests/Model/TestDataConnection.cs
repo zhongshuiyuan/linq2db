@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Linq;
 using System.Linq.Expressions;
-using System.Reflection;
 using System.Text;
 
 using LinqToDB;
@@ -72,7 +71,7 @@ namespace Tests.Model
 		[Sql.TableFunction(Name="GetParentByID")]
 		public ITable<Parent> GetParentByID(int? id)
 		{
-			var methodInfo = (typeof(TestDataConnection)).GetMethod("GetParentByID", new [] {typeof(int?)});
+			var methodInfo = (typeof(TestDataConnection)).GetMethod("GetParentByID", new [] {typeof(int?)})!;
 
 			return GetTable<Parent>(this, methodInfo, id);
 		}
@@ -84,7 +83,8 @@ namespace Tests.Model
 
 			//provider.SqlQuery = sql;
 
-			var statement = (SqlSelectStatement)optimizer.Finalize(new SqlSelectStatement(query));
+			var statement = (SqlSelectStatement)optimizer.Finalize(new SqlSelectStatement(query), false);
+			statement.SetAliases();
 
 			var cc = provider.CommandCount(statement);
 			var sb = new StringBuilder();

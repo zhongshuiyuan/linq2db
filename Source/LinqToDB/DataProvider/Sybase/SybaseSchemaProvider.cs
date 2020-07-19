@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Data;
-using System.Data.Common;
 using System.Linq;
 
 namespace LinqToDB.DataProvider.Sybase
@@ -12,17 +11,10 @@ namespace LinqToDB.DataProvider.Sybase
 
 	class SybaseSchemaProvider : SchemaProviderBase
 	{
-		public SybaseSchemaProvider(string providerName)
-		{
-			_providerName = providerName;
-		}
-
-		private readonly string _providerName;
-
 		// sybase provider will execute procedure
 		protected override bool GetProcedureSchemaExecutesProcedure => true;
 
-		protected override DataType GetDataType(string dataType, string columnType, long? length, int? prec, int? scale)
+		protected override DataType GetDataType(string? dataType, string? columnType, long? length, int? prec, int? scale)
 		{
 			switch (dataType)
 			{
@@ -61,12 +53,9 @@ namespace LinqToDB.DataProvider.Sybase
 			return DataType.Undefined;
 		}
 
-		protected override string GetProviderSpecificTypeNamespace()
-		{
-			return _providerName == ProviderName.SybaseManaged ? "AdoNetCore.AseClient" : "Sybase.Data.AseClient";
-		}
+		protected override string? GetProviderSpecificTypeNamespace() => null;
 
-		protected override List<TableInfo> GetTables(DataConnection dataConnection)
+		protected override List<TableInfo> GetTables(DataConnection dataConnection, GetSchemaOptions options)
 		{
 			return dataConnection.Query<TableInfo>(@"
 SELECT
@@ -84,7 +73,8 @@ WHERE
 				.ToList();
 		}
 
-		protected override List<PrimaryKeyInfo> GetPrimaryKeys(DataConnection dataConnection)
+		protected override IReadOnlyCollection<PrimaryKeyInfo> GetPrimaryKeys(DataConnection dataConnection,
+			IEnumerable<TableSchema> tables, GetSchemaOptions options)
 		{
 			return dataConnection.Query<PrimaryKeyInfo>(@"
 SELECT
@@ -105,7 +95,7 @@ WHERE
 				.ToList();
 		}
 
-		protected override List<ColumnInfo> GetColumns(DataConnection dataConnection)
+		protected override List<ColumnInfo> GetColumns(DataConnection dataConnection, GetSchemaOptions options)
 		{
 			return dataConnection.Query<ColumnInfo>(@"
 SELECT
@@ -129,7 +119,8 @@ WHERE
 				.ToList();
 		}
 
-		protected override List<ForeignKeyInfo> GetForeignKeys(DataConnection dataConnection)
+		protected override IReadOnlyCollection<ForeignKeyInfo> GetForeignKeys(DataConnection dataConnection,
+			IEnumerable<TableSchema> tables, GetSchemaOptions options)
 		{
 			const string baseSql = @"
 SELECT
@@ -150,7 +141,7 @@ FROM
 WHERE
 	c.status = 64";
 
-			string sql = null;
+			string? sql = null;
 
 			for (var i = 1; i <= 16; i++)
 			{
@@ -165,7 +156,7 @@ WHERE
 			return dataConnection.Query<ForeignKeyInfo>(sql).ToList();
 		}
 
-		protected override List<ProcedureInfo> GetProcedures(DataConnection dataConnection)
+		protected override List<ProcedureInfo>? GetProcedures(DataConnection dataConnection, GetSchemaOptions options)
 		{
 			using (var reader = dataConnection.ExecuteReader(
 				"sp_oledb_stored_procedures",
@@ -191,7 +182,7 @@ WHERE
 			}
 		}
 
-		protected override List<ProcedureParameterInfo> GetProcedureParameters(DataConnection dataConnection)
+		protected override List<ProcedureParameterInfo> GetProcedureParameters(DataConnection dataConnection, IEnumerable<ProcedureInfo> procedures, GetSchemaOptions options)
 		{
 			// otherwise GetSchema will throw AseException
 			if (dataConnection.Transaction != null)
@@ -232,14 +223,14 @@ WHERE
 			}
 		}
 
-		protected override DataTable GetProcedureSchema(DataConnection dataConnection, string commandText, CommandType commandType, DataParameter[] parameters)
+		protected override DataTable? GetProcedureSchema(DataConnection dataConnection, string commandText, CommandType commandType, DataParameter[] parameters)
 		{
 			var dt = base.GetProcedureSchema(dataConnection, commandText, commandType, parameters);
 
 			return dt.AsEnumerable().Any() ? dt : null;
 		}
 
-		protected override List<ColumnSchema> GetProcedureResultColumns(DataTable resultTable)
+		protected override List<ColumnSchema> GetProcedureResultColumns(DataTable resultTable, GetSchemaOptions options)
 		{
 			return
 			(
@@ -267,7 +258,7 @@ WHERE
 
 		protected override List<DataTypeInfo> GetDataTypes(DataConnection dataConnection)
 		{
-			List<DataTypeInfo> dataTypes = null;
+			List<DataTypeInfo>? dataTypes = null;
 
 			try
 			{
@@ -283,32 +274,32 @@ WHERE
 				// me as they doesn't match AseDbType enum
 				return new List<DataTypeInfo>()
 				{
-					new DataTypeInfo { TypeName = "smallint"        , DataType = typeof(short)   .FullName, CreateFormat = "smallint"         , ProviderDbType = 16                                                                   },
-					new DataTypeInfo { TypeName = "int"             , DataType = typeof(int)     .FullName, CreateFormat = "int"              , ProviderDbType = 8                                                                    },
-					new DataTypeInfo { TypeName = "real"            , DataType = typeof(float)   .FullName, CreateFormat = "real"             , ProviderDbType = 13                                                                   },
-					new DataTypeInfo { TypeName = "float"           , DataType = typeof(double)  .FullName, CreateFormat = "float({0})"       , ProviderDbType = 6   , CreateParameters = "number of bits used to store the mantissa" },
-					new DataTypeInfo { TypeName = "money"           , DataType = typeof(decimal) .FullName, CreateFormat = "money"            , ProviderDbType = 9                                                                    },
-					new DataTypeInfo { TypeName = "smallmoney"      , DataType = typeof(decimal) .FullName, CreateFormat = "smallmoney"       , ProviderDbType = 17                                                                   },
-					new DataTypeInfo { TypeName = "bit"             , DataType = typeof(bool)    .FullName, CreateFormat = "bit"              , ProviderDbType = 2                                                                    },
-					new DataTypeInfo { TypeName = "tinyint"         , DataType = typeof(sbyte)   .FullName, CreateFormat = "tinyint"          , ProviderDbType = 20                                                                   },
-					new DataTypeInfo { TypeName = "bigint"          , DataType = typeof(long)    .FullName, CreateFormat = "bigint"           , ProviderDbType = 0                                                                    },
-					new DataTypeInfo { TypeName = "timestamp"       , DataType = typeof(byte[])  .FullName, CreateFormat = "timestamp"        , ProviderDbType = 19                                                                   },
-					new DataTypeInfo { TypeName = "binary"          , DataType = typeof(byte[])  .FullName, CreateFormat = "binary({0})"      , ProviderDbType = 1   , CreateParameters = "length"                                    },
-					new DataTypeInfo { TypeName = "image"           , DataType = typeof(byte[])  .FullName, CreateFormat = "image"            , ProviderDbType = 7                                                                    },
-					new DataTypeInfo { TypeName = "text"            , DataType = typeof(string)  .FullName, CreateFormat = "text"             , ProviderDbType = 18                                                                   },
-					new DataTypeInfo { TypeName = "ntext"           , DataType = typeof(string)  .FullName, CreateFormat = "ntext"            , ProviderDbType = 11                                                                   },
-					new DataTypeInfo { TypeName = "decimal"         , DataType = typeof(decimal) .FullName, CreateFormat = "decimal({0}, {1})", ProviderDbType = 5   , CreateParameters = "precision,scale"                           },
-					new DataTypeInfo { TypeName = "numeric"         , DataType = typeof(decimal) .FullName, CreateFormat = "numeric({0}, {1})", ProviderDbType = 5   , CreateParameters = "precision,scale"                           },
-					new DataTypeInfo { TypeName = "datetime"        , DataType = typeof(DateTime).FullName, CreateFormat = "datetime"         , ProviderDbType = 4                                                                    },
-					new DataTypeInfo { TypeName = "smalldatetime"   , DataType = typeof(DateTime).FullName, CreateFormat = "smalldatetime"    , ProviderDbType = 15                                                                   },
-					new DataTypeInfo { TypeName = "sql_variant"     , DataType = typeof(object)  .FullName, CreateFormat = "sql_variant"      , ProviderDbType = 23                                                                   },
-					new DataTypeInfo { TypeName = "xml"             , DataType = typeof(string)  .FullName, CreateFormat = "xml"              , ProviderDbType = 25                                                                   },
-					new DataTypeInfo { TypeName = "varchar"         , DataType = typeof(string)  .FullName, CreateFormat = "varchar({0})"     , ProviderDbType = 22  , CreateParameters = "max length"                                },
-					new DataTypeInfo { TypeName = "char"            , DataType = typeof(string)  .FullName, CreateFormat = "char({0})"        , ProviderDbType = 3   , CreateParameters = "length"                                    },
-					new DataTypeInfo { TypeName = "nchar"           , DataType = typeof(string)  .FullName, CreateFormat = "nchar({0})"       , ProviderDbType = 10  , CreateParameters = "length"                                    },
-					new DataTypeInfo { TypeName = "nvarchar"        , DataType = typeof(string)  .FullName, CreateFormat = "nvarchar({0})"    , ProviderDbType = 12  , CreateParameters = "max length"                                },
-					new DataTypeInfo { TypeName = "varbinary"       , DataType = typeof(string)  .FullName, CreateFormat = "varbinary({0})"   , ProviderDbType = 21  , CreateParameters = "max length"                                },
-					new DataTypeInfo { TypeName = "uniqueidentifier", DataType = typeof(Guid)    .FullName, CreateFormat = "uniqueidentifier" , ProviderDbType = 14                                                                   }
+					new DataTypeInfo { TypeName = "smallint"        , DataType = typeof(short)   .FullName!, CreateFormat = "smallint"         , ProviderDbType = 16                                                                   },
+					new DataTypeInfo { TypeName = "int"             , DataType = typeof(int)     .FullName!, CreateFormat = "int"              , ProviderDbType = 8                                                                    },
+					new DataTypeInfo { TypeName = "real"            , DataType = typeof(float)   .FullName!, CreateFormat = "real"             , ProviderDbType = 13                                                                   },
+					new DataTypeInfo { TypeName = "float"           , DataType = typeof(double)  .FullName!, CreateFormat = "float({0})"       , ProviderDbType = 6   , CreateParameters = "number of bits used to store the mantissa" },
+					new DataTypeInfo { TypeName = "money"           , DataType = typeof(decimal) .FullName!, CreateFormat = "money"            , ProviderDbType = 9                                                                    },
+					new DataTypeInfo { TypeName = "smallmoney"      , DataType = typeof(decimal) .FullName!, CreateFormat = "smallmoney"       , ProviderDbType = 17                                                                   },
+					new DataTypeInfo { TypeName = "bit"             , DataType = typeof(bool)    .FullName!, CreateFormat = "bit"              , ProviderDbType = 2                                                                    },
+					new DataTypeInfo { TypeName = "tinyint"         , DataType = typeof(sbyte)   .FullName!, CreateFormat = "tinyint"          , ProviderDbType = 20                                                                   },
+					new DataTypeInfo { TypeName = "bigint"          , DataType = typeof(long)    .FullName!, CreateFormat = "bigint"           , ProviderDbType = 0                                                                    },
+					new DataTypeInfo { TypeName = "timestamp"       , DataType = typeof(byte[])  .FullName!, CreateFormat = "timestamp"        , ProviderDbType = 19                                                                   },
+					new DataTypeInfo { TypeName = "binary"          , DataType = typeof(byte[])  .FullName!, CreateFormat = "binary({0})"      , ProviderDbType = 1   , CreateParameters = "length"                                    },
+					new DataTypeInfo { TypeName = "image"           , DataType = typeof(byte[])  .FullName!, CreateFormat = "image"            , ProviderDbType = 7                                                                    },
+					new DataTypeInfo { TypeName = "text"            , DataType = typeof(string)  .FullName!, CreateFormat = "text"             , ProviderDbType = 18                                                                   },
+					new DataTypeInfo { TypeName = "ntext"           , DataType = typeof(string)  .FullName!, CreateFormat = "ntext"            , ProviderDbType = 11                                                                   },
+					new DataTypeInfo { TypeName = "decimal"         , DataType = typeof(decimal) .FullName!, CreateFormat = "decimal({0}, {1})", ProviderDbType = 5   , CreateParameters = "precision,scale"                           },
+					new DataTypeInfo { TypeName = "numeric"         , DataType = typeof(decimal) .FullName!, CreateFormat = "numeric({0}, {1})", ProviderDbType = 5   , CreateParameters = "precision,scale"                           },
+					new DataTypeInfo { TypeName = "datetime"        , DataType = typeof(DateTime).FullName!, CreateFormat = "datetime"         , ProviderDbType = 4                                                                    },
+					new DataTypeInfo { TypeName = "smalldatetime"   , DataType = typeof(DateTime).FullName!, CreateFormat = "smalldatetime"    , ProviderDbType = 15                                                                   },
+					new DataTypeInfo { TypeName = "sql_variant"     , DataType = typeof(object)  .FullName!, CreateFormat = "sql_variant"      , ProviderDbType = 23                                                                   },
+					new DataTypeInfo { TypeName = "xml"             , DataType = typeof(string)  .FullName!, CreateFormat = "xml"              , ProviderDbType = 25                                                                   },
+					new DataTypeInfo { TypeName = "varchar"         , DataType = typeof(string)  .FullName!, CreateFormat = "varchar({0})"     , ProviderDbType = 22  , CreateParameters = "max length"                                },
+					new DataTypeInfo { TypeName = "char"            , DataType = typeof(string)  .FullName!, CreateFormat = "char({0})"        , ProviderDbType = 3   , CreateParameters = "length"                                    },
+					new DataTypeInfo { TypeName = "nchar"           , DataType = typeof(string)  .FullName!, CreateFormat = "nchar({0})"       , ProviderDbType = 10  , CreateParameters = "length"                                    },
+					new DataTypeInfo { TypeName = "nvarchar"        , DataType = typeof(string)  .FullName!, CreateFormat = "nvarchar({0})"    , ProviderDbType = 12  , CreateParameters = "max length"                                },
+					new DataTypeInfo { TypeName = "varbinary"       , DataType = typeof(string)  .FullName!, CreateFormat = "varbinary({0})"   , ProviderDbType = 21  , CreateParameters = "max length"                                },
+					new DataTypeInfo { TypeName = "uniqueidentifier", DataType = typeof(Guid)    .FullName!, CreateFormat = "uniqueidentifier" , ProviderDbType = 14                                                                   }
 				};
 			}
 

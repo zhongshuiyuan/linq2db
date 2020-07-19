@@ -15,7 +15,7 @@
 		{
 			SetDataType(typeof(string), new SqlDataType(DataType.NVarChar, typeof(string), 255));
 
-			SetValueToSqlConverter(typeof(string), (sb, dt, v) => ConvertStringToSql(sb, v.ToString()));
+			SetValueToSqlConverter(typeof(string), (sb, dt, v) => ConvertStringToSql(sb, v.ToString()!));
 			SetValueToSqlConverter(typeof(char)  , (sb, dt, v) => ConvertCharToSql  (sb, (char)v));
 			SetValueToSqlConverter(typeof(byte[]), (sb, dt, v) => ConvertBinaryToSql(sb, (byte[])v));
 			SetValueToSqlConverter(typeof(Binary), (sb, dt, v) => ConvertBinaryToSql(sb, ((Binary)v).ToArray()));
@@ -50,6 +50,26 @@
 		static void ConvertCharToSql(StringBuilder stringBuilder, char value)
 		{
 			DataTools.ConvertCharToSql(stringBuilder, "'", AppendConversion, value);
+		}
+
+		internal static readonly SapHanaMappingSchema Instance = new SapHanaMappingSchema();
+
+#if !NETSTANDARD2_0 && !NETSTANDARD2_1
+		public class NativeMappingSchema : MappingSchema
+		{
+			public NativeMappingSchema()
+				: base(ProviderName.SapHanaNative, Instance)
+			{
+			}
+		}
+#endif
+
+		public class OdbcMappingSchema : MappingSchema
+		{
+			public OdbcMappingSchema()
+				: base(ProviderName.SapHanaOdbc, Instance)
+			{
+			}
 		}
 	}
 }

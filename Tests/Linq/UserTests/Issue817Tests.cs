@@ -1,5 +1,4 @@
-﻿using System;
-using System.Linq;
+﻿using System.Linq;
 
 using LinqToDB;
 
@@ -46,6 +45,7 @@ namespace Tests.UserTests
 				Assert.AreEqual(1, result.Count);
 			}
 		}
+
 
 		[Test]
 		public void TestUnorderedTakeSkipZero([DataSources] string context)
