@@ -13,7 +13,7 @@
 		<Reference Include="FastExpressionCompiler" Condition="'$(TargetFramework)' == 'net46'">
 			<HintPath>..\..\Redist\FastExpressionCompiler\net45\FastExpressionCompiler.dll</HintPath>
 		</Reference>
-		<Reference Include="FastExpressionCompiler" Condition="'$(TargetFramework)' == 'netcoreapp2.0'">
+		<Reference Include="FastExpressionCompiler" Condition="'$(TargetFramework)' != 'net46'">
 			<HintPath>..\..\Redist\FastExpressionCompiler\netstandard2.0\FastExpressionCompiler.dll</HintPath>
 		</Reference>
 	</ItemGroup>
