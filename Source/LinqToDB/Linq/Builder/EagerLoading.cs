@@ -1331,7 +1331,7 @@ namespace LinqToDB.Linq.Builder
 				.SelectMany(detailQueryLambda,
 					(main, detail) => new KeyDetailEnvelope<TKey, TD>
 					{
-						Key    = selectKeyExpression.CompileExpression()(main),
+						Key    = selectKeyExpression.Compile()(main),
 						Detail = detail
 					});
 
