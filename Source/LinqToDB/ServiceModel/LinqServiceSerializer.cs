@@ -1298,6 +1298,7 @@ namespace LinqToDB.ServiceModel
 						{
 							var elem = (SqlMergeStatement)e;
 
+							Append(elem.With);
 							Append(elem.Hint);
 							Append(elem.Target);
 							Append(elem.Source);
@@ -2095,6 +2096,7 @@ namespace LinqToDB.ServiceModel
 
 					case QueryElementType.MergeStatement:
 						{
+							var with       = Read<SqlWithClause>();
 							var hint       = ReadString();
 							var target     = Read<SqlTableSource>()!;
 							var source     = Read<SqlMergeSourceTable>()!;
@@ -2102,7 +2104,7 @@ namespace LinqToDB.ServiceModel
 							var operations = ReadArray<SqlMergeOperationClause>()!;
 							var parameters = ReadArray<SqlParameter>();
 
-							obj = _statement = new SqlMergeStatement(hint, target, source, on, operations);
+							obj = _statement = new SqlMergeStatement(with, hint, target, source, on, operations);
 							_statement.Parameters.AddRange(parameters);
 
 							break;

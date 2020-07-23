@@ -5,7 +5,7 @@ namespace LinqToDB.SqlQuery
 {
 	public abstract class SqlStatementWithQueryBase : SqlStatement
 	{
-		public override bool               IsParameterDependent
+		public override bool    IsParameterDependent
 		{
 			get => SelectQuery!.IsParameterDependent;
 			set => SelectQuery!.IsParameterDependent = value;
@@ -28,8 +28,7 @@ namespace LinqToDB.SqlQuery
 
 		public override ISqlTableSource? GetTableSource(ISqlTableSource table)
 		{
-			var ts = SelectQuery!.GetTableSource(table) ?? With?.GetTableSource(table);
-			return ts;
+			return SelectQuery!.GetTableSource(table) ?? With?.GetTableSource(table);
 		}
 
 		public override void WalkQueries(Func<SelectQuery, SelectQuery> func)

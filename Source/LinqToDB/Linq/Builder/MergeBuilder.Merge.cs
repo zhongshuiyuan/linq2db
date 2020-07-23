@@ -1,5 +1,6 @@
 ﻿using LinqToDB.Expressions;
 using LinqToDB.SqlQuery;
+using System;
 using System.Linq.Expressions;
 
 namespace LinqToDB.Linq.Builder
@@ -11,7 +12,8 @@ namespace LinqToDB.Linq.Builder
 			protected override bool CanBuildMethodCall(ExpressionBuilder builder, MethodCallExpression methodCall, BuildInfo buildInfo)
 			{
 				return methodCall.Method.IsGenericMethod
-					&& LinqExtensions.MergeMethodInfo == methodCall.Method.GetGenericMethodDefinition();
+					&& (   LinqExtensions.MergeMethodInfo1 == methodCall.Method.GetGenericMethodDefinition()
+						|| LinqExtensions.MergeMethodInfo2 == methodCall.Method.GetGenericMethodDefinition());
 			}
 
 			protected override IBuildContext BuildMethodCall(ExpressionBuilder builder, MethodCallExpression methodCall, BuildInfo buildInfo)
@@ -19,12 +21,16 @@ namespace LinqToDB.Linq.Builder
 				// Merge(ITable<TTarget> target, string hint)
 				var target = builder.BuildSequence(new BuildInfo(buildInfo, methodCall.Arguments[0], new SelectQuery()) { AssociationsAsSubQueries = true });
 
-				var targetTable = ((TableBuilder.TableContext)target).SqlTable;
-
-				var merge = new SqlMergeStatement(targetTable)
+				if (!(target is TableBuilder.TableContext tableContext))
 				{
-					Hint = (string?)methodCall.Arguments[1].EvaluateExpression()
-				};
+					throw new NotImplementedException();
+				}
+
+				var targetTable = tableContext.SqlTable;
+
+				var merge = new SqlMergeStatement(targetTable);
+				if (methodCall.Arguments.Count == 2)
+					merge.Hint = (string?)methodCall.Arguments[1].EvaluateExpression();
 
 				target.SetAlias(merge.Target.Alias!);
 				target.Statement = merge;

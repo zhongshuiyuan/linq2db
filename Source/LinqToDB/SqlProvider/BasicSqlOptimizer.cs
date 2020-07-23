@@ -130,7 +130,9 @@ namespace LinqToDB.SqlProvider
 					}
 				}
 
-				new QueryVisitor().Visit(select.SelectQuery, e =>
+				if (select is SqlMergeStatement merge)
+				{
+					new QueryVisitor().Visit(merge.Target, e =>
 					{
 						if (e.ElementType == QueryElementType.SqlCteTable)
 						{
@@ -138,7 +140,27 @@ namespace LinqToDB.SqlProvider
 							RegisterDependency(cte);
 						}
 					}
-				);
+					);
+					new QueryVisitor().Visit(merge.Source, e =>
+					{
+						if (e.ElementType == QueryElementType.SqlCteTable)
+						{
+							var cte = ((SqlCteTable)e).Cte!;
+							RegisterDependency(cte);
+						}
+					}
+					);
+				}
+				else
+					new QueryVisitor().Visit(select.SelectQuery, e =>
+						{
+							if (e.ElementType == QueryElementType.SqlCteTable)
+							{
+								var cte = ((SqlCteTable)e).Cte!;
+								RegisterDependency(cte);
+							}
+						}
+					);
 
 				if (foundCte.Count == 0)
 					select.With = null;

@@ -783,6 +783,7 @@ namespace LinqToDB.SqlQuery
 						{
 							var merge = (SqlMergeStatement)element;
 
+							var with       = merge.With        != null ? (SqlWithClause?) ConvertInternal(merge.With) : null;
 							var target     = (SqlTableSource?)     ConvertInternal(merge.Target);
 							var source     = (SqlMergeSourceTable?)ConvertInternal(merge.Source);
 							var on         = (SqlSearchCondition?) ConvertInternal(merge.On);
@@ -794,6 +795,7 @@ namespace LinqToDB.SqlQuery
 								operations != null && !ReferenceEquals(merge.Operations, operations))
 							{
 								newElement = new SqlMergeStatement(
+									with,
 									merge.Hint,
 									target ?? merge.Target,
 									source ?? merge.Source,

@@ -70,8 +70,8 @@ namespace LinqToDB.Linq.Builder
 									if (_sourceParameters.Contains(root))
 										return SourceContext.ConvertToSql(expression, level, flags);
 
-									if (_targetParameters.Contains(root))
-										return TargetContext.ConvertToSql(expression, level, flags);
+									//if (_targetParameters.Contains(root))
+									//	return TargetContext.ConvertToSql(expression, level, flags);
 
 									return TargetContext.ConvertToSql(expression, level, flags);
 								}
