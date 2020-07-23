@@ -130,7 +130,7 @@ namespace LinqToDB
 		[Pure, LinqTunnel]
 		public static IMergeableOn<TTarget, TSource> MergeInto<TTarget, TSource>(
 			 this IQueryable<TSource> source,
-				  IQueryable<TTarget> target)
+			      IQueryable<TTarget> target)
 		{
 			if (source == null) throw new ArgumentNullException(nameof(source));
 			if (target == null) throw new ArgumentNullException(nameof(target));
@@ -155,7 +155,7 @@ namespace LinqToDB
 		[Pure, LinqTunnel]
 		public static IMergeableOn<TTarget, TSource> MergeInto<TTarget, TSource>(
 			 this IQueryable<TSource> source,
-				  ITable<TTarget>     target)
+			      ITable<TTarget>     target)
 		{
 			if (source == null) throw new ArgumentNullException(nameof(source));
 			if (target == null) throw new ArgumentNullException(nameof(target));
