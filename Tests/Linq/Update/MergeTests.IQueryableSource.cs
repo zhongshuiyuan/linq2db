@@ -15,6 +15,7 @@ namespace Tests.xUpdate
 	public partial class MergeTests
 	{
 		[Test]
+		[ActiveIssue(2363)]
 		public void MergeIntoIQueryable([MergeDataContextSource] string context)
 		{
 			using (var db = GetDataContext(context))
@@ -24,7 +25,7 @@ namespace Tests.xUpdate
 				var table = GetTarget(db);
 
 				var rows = GetSource1(db)
-					.MergeInto(table.Where(_ => true))
+					.MergeInto(table.Where(_ => _.Id >= 1))
 					.OnTargetKey()
 					.InsertWhenNotMatched()
 					.Merge();
@@ -54,7 +55,7 @@ namespace Tests.xUpdate
 				var table = GetTarget(db);
 
 				var rows = GetSource1(db)
-					.MergeInto(table.Where(_ => true).AsCte())
+					.MergeInto(table.Where(_ => _.Id >= 1).AsCte())
 					.OnTargetKey()
 					.InsertWhenNotMatched()
 					.Merge();
@@ -75,6 +76,7 @@ namespace Tests.xUpdate
 		}
 
 		[Test]
+		[ActiveIssue(2363)]
 		public void MergeFromIQueryable([MergeDataContextSource] string context)
 		{
 			using (var db = GetDataContext(context))
@@ -83,7 +85,7 @@ namespace Tests.xUpdate
 
 				var table = GetTarget(db);
 
-				var rows = table.Where(_ => true)
+				var rows = table.Where(_ => _.Id >= 1)
 					.Merge().Using(GetSource1(db))
 					.OnTargetKey()
 					.InsertWhenNotMatched()
@@ -113,7 +115,7 @@ namespace Tests.xUpdate
 
 				var table = GetTarget(db);
 
-				var rows = table.Where(_ => true).AsCte()
+				var rows = table.Where(_ => _.Id >= 1).AsCte()
 					.Merge().Using(GetSource1(db))
 					.OnTargetKey()
 					.InsertWhenNotMatched()
