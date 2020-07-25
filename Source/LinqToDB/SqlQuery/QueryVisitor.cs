@@ -1110,6 +1110,7 @@ namespace LinqToDB.SqlQuery
 
 		void Visit2X(SqlMergeStatement element)
 		{
+			Visit2(element.With);
 			Visit2(element.Target);
 			Visit2(element.Source);
 			Visit2(element.On);
