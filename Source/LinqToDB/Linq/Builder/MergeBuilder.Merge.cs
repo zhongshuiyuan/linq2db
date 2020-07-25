@@ -21,7 +21,8 @@ namespace LinqToDB.Linq.Builder
 				// Merge(ITable<TTarget> target, string hint)
 				var target = builder.BuildSequence(new BuildInfo(buildInfo, methodCall.Arguments[0], new SelectQuery()) { AssociationsAsSubQueries = true });
 
-				if (!(target is TableBuilder.TableContext tableContext))
+				if (!(target is TableBuilder.TableContext tableContext)
+					|| !tableContext.SelectQuery.IsSimple)
 				{
 					throw new NotImplementedException("Currently, only CTEs are supported as the target of a merge. You can fix by calling .AsCte() before calling .Merge()");
 				}

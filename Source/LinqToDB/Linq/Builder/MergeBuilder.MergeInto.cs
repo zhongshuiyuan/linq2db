@@ -22,7 +22,8 @@ namespace LinqToDB.Linq.Builder
 				var sourceContext = builder.BuildSequence(new BuildInfo(buildInfo, methodCall.Arguments[0], new SelectQuery()));
 				var target        = builder.BuildSequence(new BuildInfo(buildInfo, methodCall.Arguments[1]) { AssociationsAsSubQueries = true });
 
-				if (!(target is TableBuilder.TableContext tableContext))
+				if (!(target is TableBuilder.TableContext tableContext)
+					|| !tableContext.SelectQuery.IsSimple)
 				{
 					throw new NotImplementedException("Currently, only CTEs are supported as the target of a merge. You can fix by calling .AsCte() on the parameter before passing into .MergeInto().");
 				}
