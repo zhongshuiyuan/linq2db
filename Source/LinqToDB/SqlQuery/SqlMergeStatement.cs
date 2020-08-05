@@ -34,21 +34,21 @@ namespace LinqToDB.SqlQuery
 				Operations.Add(operation);
 		}
 
-		public string? Hint { get; internal set; }
+		public string?                        Hint   { get; internal set; }
+							                  
+		public SqlTableSource                 Target { get; }
+								              
+		public SqlMergeSourceTable            Source { get; internal set; } = null!;
+								              
+		public SqlSearchCondition             On     { get; }               = new SqlSearchCondition();
 
-		public SqlTableSource Target { get; }
+		public IList<SqlMergeOperationClause> Operations { get; }           = new List<SqlMergeOperationClause>();
 
-		public SqlMergeSourceTable Source { get; internal set; } = null!;
+		public bool                           HasIdentityInsert             => Operations.Any(o => o.OperationType == MergeOperationType.Insert && o.Items.Any(item => item.Column is SqlField field && field.IsIdentity));
+								              
+		public override QueryType             QueryType                     => QueryType.Merge;
 
-		public SqlSearchCondition On { get; } = new SqlSearchCondition();
-
-		public IList<SqlMergeOperationClause> Operations { get; } = new List<SqlMergeOperationClause>();
-
-		public bool HasIdentityInsert => Operations.Any(o => o.OperationType == MergeOperationType.Insert && o.Items.Any(item => item.Column is SqlField field && field.IsIdentity));
-
-		public override QueryType QueryType => QueryType.Merge;
-
-		public override QueryElementType ElementType => QueryElementType.MergeStatement;
+		public override QueryElementType      ElementType                   => QueryElementType.MergeStatement;
 
 		public override ICloneableElement Clone(Dictionary<ICloneableElement, ICloneableElement> objectTree, Predicate<ICloneableElement> doClone)
 		{
