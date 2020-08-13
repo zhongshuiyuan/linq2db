@@ -11,7 +11,7 @@ namespace LinqToDB.Common
 
 	public static class Compilation
 	{
-		private static Func<LambdaExpression, Delegate> _compiler;
+		private static Func<LambdaExpression, Delegate>? _compiler;
 
 		public static void SetExpressionCompiler(Func<LambdaExpression, Delegate> compiler)
 		{
