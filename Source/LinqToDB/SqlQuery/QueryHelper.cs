@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Linq;
 using System.Collections.Generic;
 using System.Text;
@@ -140,12 +140,43 @@ namespace LinqToDB.SqlQuery
 			});
 		}
 
+		public static void CollectUsedSources(IQueryElement root, HashSet<ISqlTableSource> found, IEnumerable<IQueryElement>? ignore = null)
+		{
+			var hashIgnore = new HashSet<IQueryElement  >(ignore ?? Enumerable.Empty<IQueryElement>());
+
+			new QueryVisitor().VisitParentFirst(root, e =>
+			{
+				if (e is SqlTableSource source)
+				{
+					if (hashIgnore.Contains(e))
+						return false;
+					found.Add(source.Source);
+				}
+
+				switch (e.ElementType)
+				{
+					case QueryElementType.Column :
+					{
+						var c = (SqlColumn) e;
+						found.Add(c.Parent!);
+						return false;
+					}
+					case QueryElementType.SqlField :
+					{
+						var f = (SqlField) e;
+						found.Add(f.Table!);
+						return false;
+					}
+				}
+				return true;
+			});
+		}
+
 		public static bool IsTransitiveExpression(SqlExpression sqlExpression)
 		{
 			if (sqlExpression.Parameters.Length == 1 && sqlExpression.Expr.Trim() == "{0}")
 			{
-				var argExpression = sqlExpression.Parameters[0] as SqlExpression;
-				if (argExpression != null)
+				if (sqlExpression.Parameters[0] is SqlExpression argExpression)
 					return IsTransitiveExpression(argExpression);
 				return true;
 			}
@@ -327,10 +358,10 @@ namespace LinqToDB.SqlQuery
 		public static IEnumerable<ISqlTableSource> EnumerateAccessibleSources(SqlTableSource tableSource)
 		{
 			if (tableSource.Source is SelectQuery q)
-				{
-					foreach (var ts in EnumerateAccessibleSources(q))
-						yield return ts;
-				}
+			{
+				foreach (var ts in EnumerateAccessibleSources(q))
+					yield return ts;
+			}
 			else 
 				yield return tableSource.Source;
 
@@ -600,15 +631,12 @@ namespace LinqToDB.SqlQuery
 		/// <returns>Field instance associated with expression</returns>
 		public static SqlField? GetUnderlyingField(ISqlExpression expression)
 		{
-			switch (expression)
+			return expression switch
 			{
-				case SqlField field:
-					return field;
-				case SqlColumn column:
-					return GetUnderlyingField(column.Expression, new HashSet<ISqlExpression>());
-			}
-
-			return null;
+				SqlField field   => field,
+				SqlColumn column => GetUnderlyingField(column.Expression, new HashSet<ISqlExpression>()),
+				_                => null,
+			};
 		}
 
 		static SqlField? GetUnderlyingField(ISqlExpression expression, HashSet<ISqlExpression> visited)
@@ -1041,6 +1069,69 @@ namespace LinqToDB.SqlQuery
 			return false;
 		}
 
+		/// <summary>
+		/// Collects unique keys from different sources.
+		/// </summary>
+		/// <param name="tableSource"></param>
+		/// <param name="knownKeys">List with found keys.</param>
+		public static void CollectUniqueKeys(SqlTableSource tableSource, List<IList<ISqlExpression>> knownKeys)
+		{
+			if (tableSource.HasUniqueKeys)
+				knownKeys.AddRange(tableSource.UniqueKeys);
+
+			CollectUniqueKeys(tableSource.Source, true, knownKeys);
+		}
+
+
+		/// <summary>
+		/// Collects unique keys from different sources.
+		/// </summary>
+		/// <param name="tableSource"></param>
+		/// <param name="includeDistinct">Flag to include Distinct as unique key.</param>
+		/// <param name="knownKeys">List with found keys.</param>
+		public static void CollectUniqueKeys(ISqlTableSource tableSource, bool includeDistinct, List<IList<ISqlExpression>> knownKeys)
+		{
+			switch (tableSource)
+			{
+				case SqlTable table:
+				{
+					var keys = table.GetKeys(false);
+					if (keys != null && keys.Count > 0)
+						knownKeys.Add(keys);
+
+					break;
+				}
+				case SelectQuery selectQuery:
+				{
+					if (selectQuery.HasUniqueKeys)
+						knownKeys.AddRange(selectQuery.UniqueKeys);
+
+					if (includeDistinct && selectQuery.Select.IsDistinct)
+						knownKeys.Add(selectQuery.Select.Columns.OfType<ISqlExpression>().ToList());
+
+					if (!selectQuery.Select.GroupBy.IsEmpty)
+					{
+						var columns = selectQuery.Select.GroupBy.Items
+							.Select(i => selectQuery.Select.Columns.Find(c => c.Expression.Equals(i))).Where(c => c != null)
+							.ToArray();
+						if (columns.Length == selectQuery.Select.GroupBy.Items.Count)
+							knownKeys.Add(columns.OfType<ISqlExpression>().ToList());
+					}
+
+					if (selectQuery.From.Tables.Count == 1)
+					{
+						var table = selectQuery.From.Tables[0];
+						if (table.HasUniqueKeys && table.Joins.Count == 0)
+						{
+							knownKeys.AddRange(table.UniqueKeys);
+						}
+					}
+
+					break;
+				}
+			}
+		}
+
 		public static object? EvaluateExpression(this ISqlExpression expr)
 		{
 			switch (expr.ElementType)
@@ -1054,23 +1145,22 @@ namespace LinqToDB.SqlQuery
 						dynamic? right = binary.Expr2.EvaluateExpression();
 						if (left == null || right == null)
 							return null;
-						switch (binary.Operation)
+						return binary.Operation switch
 						{
-							case "+" : return left +  right;
-							case "-" : return left -  right;
-							case "*" : return left *  right;
-							case "/" : return left /  right;
-							case "%" : return left %  right;
-							case "^" : return left ^  right;
-							case "&" : return left &  right;
-							case "<" : return left <  right;
-							case ">" : return left >  right;
-							case "<=": return left <= right;
-							case ">=": return left >= right;
-							default:
-								throw new LinqToDBException($"Unknown binary operation '{binary.Operation}'.");
-						}
-					}
+							"+"  => left + right,
+							"-"  => left - right,
+							"*"  => left * right,
+							"/"  => left / right,
+							"%"  => left % right,
+							"^"  => left ^ right,
+							"&"  => left & right,
+							"<"  => left < right,
+							">"  => left > right,
+							"<=" => left <= right,
+							">=" => left >= right,
+							_    => throw new LinqToDBException($"Unknown binary operation '{binary.Operation}'."),
+						};
+				}
 				case QueryElementType.SqlFunction        :
 					{
 						var function = (SqlFunction)expr;

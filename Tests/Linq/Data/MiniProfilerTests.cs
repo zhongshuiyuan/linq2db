@@ -1,7 +1,4 @@
-﻿extern alias MySqlData;
-extern alias MySqlConnector;
-
-using System;
+﻿using System;
 using System.Data;
 using System.Data.Common;
 using System.Data.SqlClient;
@@ -22,10 +19,10 @@ using StackExchange.Profiling;
 using StackExchange.Profiling.Data;
 using Tests.Model;
 
-using MySqlDataDateTime           = MySqlData::MySql.Data.Types.MySqlDateTime;
-using MySqlDataDecimal            = MySqlData::MySql.Data.Types.MySqlDecimal;
-using MySqlConnectorDateTime      = MySqlConnector::MySql.Data.Types.MySqlDateTime;
-using MySqlDataMySqlConnection    = MySqlData::MySql.Data.MySqlClient.MySqlConnection;
+using MySqlDataDateTime           = MySql.Data.Types.MySqlDateTime;
+using MySqlDataDecimal            = MySql.Data.Types.MySqlDecimal;
+using MySqlConnectorDateTime      = MySqlConnector.MySqlDateTime;
+using MySqlDataMySqlConnection    = MySql.Data.MySqlClient.MySqlConnection;
 using System.Globalization;
 using LinqToDB.DataProvider.SQLite;
 using LinqToDB.DataProvider.DB2;
@@ -37,6 +34,7 @@ using LinqToDB.DataProvider.Sybase;
 using LinqToDB.DataProvider.Informix;
 using LinqToDB.DataProvider.Oracle;
 using LinqToDB.DataProvider.PostgreSQL;
+using System.Threading.Tasks;
 using LinqToDB.Common;
 #if NET46
 using IBM.Data.Informix;
@@ -396,10 +394,10 @@ namespace Tests.Data
 		}
 
 		[Test]
-		public void TestMySqlConnector([IncludeDataSources(ProviderName.MySqlConnector)] string context, [Values] ConnectionType type)
+		public async Task TestMySqlConnector([IncludeDataSources(ProviderName.MySqlConnector)] string context, [Values] ConnectionType type)
 		{
 			var unmapped = type == ConnectionType.MiniProfilerNoMappings;
-			using (var db = CreateDataConnection(new MySqlDataProvider(ProviderName.MySqlConnector), context, type, "MySql.Data.MySqlClient.MySqlConnection, MySqlConnector", ";AllowZeroDateTime=true"))
+			using (var db = CreateDataConnection(new MySqlDataProvider(ProviderName.MySqlConnector), context, type, "MySqlConnector.MySqlConnection, MySqlConnector", ";AllowZeroDateTime=true"))
 			{
 				var trace = string.Empty;
 				db.OnTraceConnection += (TraceInfo ti) =>
@@ -426,9 +424,9 @@ namespace Tests.Data
 				Assert.True    (trace.Contains("DECLARE @p Byte "));
 
 				// bulk copy
+				MySqlTests.EnableNativeBulk(db, context);
 				try
 				{
-					MySqlTests.EnableNativeBulk(db, context);
 					db.BulkCopy(
 						new BulkCopyOptions() { BulkCopyType = BulkCopyType.ProviderSpecific },
 						Enumerable.Range(0, 1000).Select(n => new MySqlTests.AllTypeBaseProviderSpecific() { ID = 2000 + n }));
@@ -438,6 +436,20 @@ namespace Tests.Data
 				finally
 				{
 					db.GetTable<MySqlTests.AllTypeBaseProviderSpecific>().Delete(p => p.ID >= 2000);
+				}
+
+				// async bulk copy
+				try
+				{
+					await db.BulkCopyAsync(
+						new BulkCopyOptions() { BulkCopyType = BulkCopyType.ProviderSpecific },
+						Enumerable.Range(0, 1000).Select(n => new MySqlTests.AllTypeBaseProviderSpecific() { ID = 2000 + n }));
+
+					Assert.AreEqual(!unmapped, trace.Contains("INSERT ASYNC BULK"));
+				}
+				finally
+				{
+					await db.GetTable<MySqlTests.AllTypeBaseProviderSpecific>().DeleteAsync(p => p.ID >= 2000);
 				}
 
 				// just check schema (no api used)
@@ -527,12 +539,12 @@ namespace Tests.Data
 		}
 
 		[Test]
-		public void TestRetryPolicy([IncludeDataSources(TestProvName.AllSqlServer)] string context, [Values] ConnectionType type)
+		public async Task TestRetryPolicy([IncludeDataSources(TestProvName.AllSqlServer)] string context, [Values] ConnectionType type)
 		{
 			Configuration.RetryPolicy.Factory = connection => new SqlServerRetryPolicy();
 			try
 			{
-				TestSqlServer(context, type);
+				await TestSqlServer(context, type);
 			}
 			finally
 			{
@@ -541,7 +553,7 @@ namespace Tests.Data
 		}
 
 		[Test]
-		public void TestSqlServer([IncludeDataSources(TestProvName.AllSqlServer)] string context, [Values] ConnectionType type)
+		public async Task TestSqlServer([IncludeDataSources(TestProvName.AllSqlServer)] string context, [Values] ConnectionType type)
 		{
 			string providerName;
 			SqlServerVersion version;
@@ -608,6 +620,10 @@ namespace Tests.Data
 				TestBulkCopy();
 				using (var tr = db.BeginTransaction())
 					TestBulkCopy();
+				// async bulk copy
+				await TestBulkCopyAsync();
+				using (var tr = db.BeginTransaction())
+					await TestBulkCopyAsync();
 
 				// test schema type name escaping
 				var schema = db.DataProvider.GetSchemaProvider().GetSchema(db, TestUtils.GetDefaultSchemaOptions(context));
@@ -674,11 +690,39 @@ namespace Tests.Data
 						Assert.True(trace.Contains("[AllTypes]"));
 					}
 				}
+
+				async Task TestBulkCopyAsync()
+				{
+					try
+					{
+						long copied = 0;
+						var options = new BulkCopyOptions()
+						{
+							BulkCopyType       = BulkCopyType.ProviderSpecific,
+							NotifyAfter        = 500,
+							RowsCopiedCallback = arg => copied = arg.RowsCopied
+						};
+
+						await db.BulkCopyAsync(
+							options,
+							Enumerable.Range(0, 1000).Select(n => new SqlServerTests.AllTypes() { ID = 2000 + n }));
+
+						Assert.AreEqual(!unmapped, trace.Contains("INSERT ASYNC BULK"));
+						Assert.AreEqual(1000, copied);
+					}
+					finally
+					{
+						await db.GetTable<SqlServerTests.AllTypes>().DeleteAsync(p => p.ID >= 2000);
+
+						// test quotation works
+						Assert.True(trace.Contains("[AllTypes]"));
+					}
+				}
 			}
 		}
 
 		[Test]
-		public void TestSqlServerMS([IncludeDataSources(TestProvName.AllSqlServer)] string context, [Values] ConnectionType type)
+		public async Task TestSqlServerMS([IncludeDataSources(TestProvName.AllSqlServer)] string context, [Values] ConnectionType type)
 		{
 			string providerName;
 			SqlServerVersion version;
@@ -738,6 +782,11 @@ namespace Tests.Data
 				TestBulkCopy();
 				using (var tr = db.BeginTransaction())
 					TestBulkCopy();
+
+				// async bulk copy
+				await TestBulkCopyAsync();
+				using (var tr = db.BeginTransaction())
+					await TestBulkCopyAsync();
 
 				// test schema type name escaping
 				var schema = db.DataProvider.GetSchemaProvider().GetSchema(db, TestUtils.GetDefaultSchemaOptions(context));
@@ -803,11 +852,39 @@ namespace Tests.Data
 						Assert.True(trace.Contains("[AllTypes]"));
 					}
 				}
+
+				async Task TestBulkCopyAsync()
+				{
+					try
+					{
+						long copied = 0;
+						var options = new BulkCopyOptions()
+						{
+							BulkCopyType       = BulkCopyType.ProviderSpecific,
+							NotifyAfter        = 500,
+							RowsCopiedCallback = arg => copied = arg.RowsCopied
+						};
+
+						await db.BulkCopyAsync(
+							options,
+							Enumerable.Range(0, 1000).Select(n => new SqlServerTests.AllTypes() { ID = 2000 + n }));
+
+						Assert.AreEqual(!unmapped, trace.Contains("INSERT ASYNC BULK"));
+						Assert.AreEqual(1000, copied);
+					}
+					finally
+					{
+						await db.GetTable<SqlServerTests.AllTypes>().DeleteAsync(p => p.ID >= 2000);
+
+						// test quotation works
+						Assert.True(trace.Contains("[AllTypes]"));
+					}
+				}
 			}
 		}
 
 		[Test]
-		public void TestSapHanaNative([IncludeDataSources(ProviderName.SapHanaNative)] string context, [Values] ConnectionType type)
+		public async Task TestSapHanaNative([IncludeDataSources(ProviderName.SapHanaNative)] string context, [Values] ConnectionType type)
 		{
 			var unmapped = type == ConnectionType.MiniProfilerNoMappings;
 			using (var db = CreateDataConnection(new SapHanaDataProvider(ProviderName.SapHanaNative), context, type, DbProviderFactories.GetFactory("Sap.Data.Hana").GetType().Assembly.GetType("Sap.Data.Hana.HanaConnection")!))
@@ -836,6 +913,11 @@ namespace Tests.Data
 				using (var tr = db.BeginTransaction())
 					TestBulkCopy();
 
+				// async bulk copy without and with transaction
+				await TestBulkCopyAsync();
+				using (var tr = db.BeginTransaction())
+					await TestBulkCopyAsync();
+
 				// test schema type name escaping
 				var schema = db.DataProvider.GetSchemaProvider().GetSchema(db, TestUtils.GetDefaultSchemaOptions(context));
 
@@ -861,6 +943,36 @@ namespace Tests.Data
 					finally
 					{
 						db.GetTable<SapHanaTests.AllType>().Delete(p => p.ID >= 2000);
+					}
+				}
+
+				async Task TestBulkCopyAsync()
+				{
+					try
+					{
+						long copied = 0;
+						var options = new BulkCopyOptions()
+						{
+							BulkCopyType       = BulkCopyType.ProviderSpecific,
+							NotifyAfter        = 500,
+							RowsCopiedCallback = arg => copied = arg.RowsCopied
+						};
+
+						await db.BulkCopyAsync(
+							options,
+							Enumerable.Range(0, 1000).Select(n => new SapHanaTests.AllType() { ID = 2000 + n }));
+
+#if NET46
+						Assert.AreEqual(!unmapped, trace.Contains("INSERT ASYNC BULK"));
+#else
+						Assert.AreEqual(!unmapped, trace.Contains("INSERT BULK"));
+#endif
+
+						Assert.AreEqual(1000, copied);
+					}
+					finally
+					{
+						await db.GetTable<SapHanaTests.AllType>().DeleteAsync(p => p.ID >= 2000);
 					}
 				}
 			}
@@ -1258,7 +1370,7 @@ namespace Tests.Data
 		}
 
 		[Test]
-		public void TestPostgreSQL([IncludeDataSources(TestProvName.AllPostgreSQL)] string context, [Values] ConnectionType type)
+		public async Task TestPostgreSQL([IncludeDataSources(TestProvName.AllPostgreSQL)] string context, [Values] ConnectionType type)
 		{
 			var wrapped = type == ConnectionType.MiniProfilerNoMappings || type == ConnectionType.MiniProfiler;
 			var unmapped = type == ConnectionType.MiniProfilerNoMappings;
@@ -1295,6 +1407,11 @@ namespace Tests.Data
 				TestBulkCopy();
 				using (var tr = db.BeginTransaction())
 					TestBulkCopy();
+
+				// async bulk copy without and with transaction
+				await TestBulkCopyAsync();
+				using (var tr = db.BeginTransaction())
+					await TestBulkCopyAsync();
 
 				// provider types support by schema
 				var schema = db.DataProvider.GetSchemaProvider().GetSchema(db, TestUtils.GetDefaultSchemaOptions(context));
@@ -1351,6 +1468,37 @@ namespace Tests.Data
 					finally
 					{
 						db.GetTable<PostgreSQLTests.AllTypes>().Delete(p => p.ID >= 2000);
+					}
+				}
+
+				async Task TestBulkCopyAsync()
+				{
+					try
+					{
+						long copied = 0;
+						var options = new BulkCopyOptions()
+						{
+							BulkCopyType       = BulkCopyType.ProviderSpecific,
+							NotifyAfter        = 500,
+							RowsCopiedCallback = arg => copied = arg.RowsCopied,
+							KeepIdentity       = true
+						};
+
+						await db.BulkCopyAsync(
+							options,
+							Enumerable.Range(0, 1000).Select(n => new PostgreSQLTests.AllTypes() { ID = 2000 + n }));
+
+#if NET46
+						// we use 4.0.11 for tests, async added in 4.1.0
+						Assert.AreEqual(!unmapped, trace.Contains("INSERT BULK"));
+#else
+						Assert.AreEqual(!unmapped, trace.Contains("INSERT ASYNC BULK"));
+#endif
+						Assert.AreEqual(1000, copied);
+					}
+					finally
+					{
+						await db.GetTable<PostgreSQLTests.AllTypes>().DeleteAsync(p => p.ID >= 2000);
 					}
 				}
 			}
