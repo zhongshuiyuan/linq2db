@@ -101,7 +101,7 @@ namespace LinqToDB.DataProvider
 
 			foreach (var item in source)
 			{
-				table.DataContext.Insert(item, options.TableName, options.DatabaseName, options.SchemaName, options.ServerName);
+				table.DataContext.Insert(item, options.TableName ?? table.TableName, options.DatabaseName ?? table.DatabaseName, options.SchemaName ?? table.SchemaName, options.ServerName ?? table.ServerName);
 				rowsCopied.RowsCopied++;
 
 				if (options.NotifyAfter != 0 && options.RowsCopiedCallback != null && rowsCopied.RowsCopied % options.NotifyAfter == 0)
@@ -128,7 +128,7 @@ namespace LinqToDB.DataProvider
 
 			foreach (var item in source)
 			{
-				await table.DataContext.InsertAsync(item, options.TableName, options.DatabaseName, options.SchemaName, options.ServerName, cancellationToken)
+				await table.DataContext.InsertAsync(item, options.TableName ?? table.TableName, options.DatabaseName ?? table.DatabaseName, options.SchemaName ?? table.SchemaName, options.ServerName ?? table.ServerName, cancellationToken)
 					.ConfigureAwait(Common.Configuration.ContinueOnCapturedContext);
 				rowsCopied.RowsCopied++;
 
@@ -157,7 +157,7 @@ namespace LinqToDB.DataProvider
 
 			await foreach (var item in source.ConfigureAwait(Common.Configuration.ContinueOnCapturedContext).WithCancellation(cancellationToken))
 			{
-				await table.DataContext.InsertAsync(item, options.TableName, options.DatabaseName, options.SchemaName, options.ServerName, cancellationToken)
+				await table.DataContext.InsertAsync(item, options.TableName ?? table.TableName, options.DatabaseName ?? table.DatabaseName, options.SchemaName ?? table.SchemaName, options.ServerName ?? table.ServerName, cancellationToken)
 					.ConfigureAwait(Common.Configuration.ContinueOnCapturedContext);
 				rowsCopied.RowsCopied++;
 
