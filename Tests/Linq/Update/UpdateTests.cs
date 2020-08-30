@@ -1506,7 +1506,7 @@ namespace Tests.xUpdate
 
 			public static UpdateSetTest[] Data = new UpdateSetTest[]
 			{
-				new UpdateSetTest() { Id = 1, Value1 = Guid.NewGuid(), Value2 = 10, Value3 = UpdateSetEnum.Value1 }
+				new UpdateSetTest() { Id = 1, Value1 = TestData.Guid3, Value2 = 10, Value3 = UpdateSetEnum.Value1 }
 			};
 		}
 
@@ -1524,7 +1524,7 @@ namespace Tests.xUpdate
 			using (var table = db.CreateLocalTable(UpdateSetTest.Data))
 			{
 				var id = 1;
-				var value = Guid.NewGuid();
+				var value = TestData.Guid1;
 
 				table.Where(_ => _.Id == id)
 					.Set(_ => _.Value1, value)
@@ -1532,7 +1532,7 @@ namespace Tests.xUpdate
 
 				Assert.AreEqual(value, table.Where(_ => _.Id == id).Select(_ => _.Value1).Single());
 
-				value = Guid.NewGuid();
+				value = TestData.Guid2;
 				table.Where(_ => _.Id == id)
 					.Set(_ => _.Value1, value)
 					.Update();
@@ -1617,7 +1617,7 @@ namespace Tests.xUpdate
 			using (var table = db.CreateLocalTable(UpdateSetTest.Data))
 			{
 				var id = 1;
-				var value = Guid.NewGuid();
+				var value = TestData.Guid1;
 
 				table.Where(_ => _.Id == id)
 					.Set(_ => _.Value4, value)
@@ -1625,7 +1625,7 @@ namespace Tests.xUpdate
 
 				Assert.AreEqual(value, table.Where(_ => _.Id == id).Select(_ => _.Value4).Single());
 
-				value = Guid.NewGuid();
+				value = TestData.Guid2;
 				table.Where(_ => _.Id == id)
 					.Set(_ => _.Value4, value)
 					.Update();

@@ -6,11 +6,6 @@ using System.IO;
 using System.Linq;
 using System.Text;
 
-#if NET46
-using System.ServiceModel;
-using System.ServiceModel.Description;
-#endif
-
 using LinqToDB;
 using LinqToDB.Common;
 using LinqToDB.Data;
@@ -21,6 +16,8 @@ using LinqToDB.Tools;
 using LinqToDB.Tools.Comparers;
 
 #if NET46
+using System.ServiceModel;
+using System.ServiceModel.Description;
 using LinqToDB.ServiceModel;
 #endif
 
@@ -28,16 +25,26 @@ using NUnit.Framework;
 
 namespace Tests
 {
-	using System.Diagnostics.CodeAnalysis;
 	using LinqToDB.DataProvider.Informix;
 	using Model;
 	using NUnit.Framework.Internal;
 	using Tools;
 
-	//	[Order(1000)]
 	public class TestBase
 	{
+		protected class TestData
+		{
+			public static readonly DateTime DateTime = new DateTime(2020, 8, 29, 17, 54, 55, 123).AddTicks(1234);
+			public static readonly DateTime Date = new DateTime(2020, 8, 29);
+			public static readonly Guid Guid1 = new Guid("bc7b663d-0fde-4327-8f92-5d8cc3a11d11");
+			public static readonly Guid Guid2 = new Guid("a948600d-de21-4f74-8ac2-9516b287076e");
+			public static readonly Guid Guid3 = new Guid("bd3973a5-4323-4dd8-9f4f-df9f93e2a627");
+		}
+
 		private const int TRACES_LIMIT = 50000;
+		
+		private static string _rootPath;
+		private static string _baselinesPath;
 
 		static TestBase()
 		{
@@ -51,30 +58,48 @@ namespace Tests
 			DataConnection.WriteTraceLine = (message, name, level) =>
 			{
 				var ctx   = CustomTestContext.Get();
-				var trace = ctx.Get<StringBuilder>(CustomTestContext.TRACE);
-				if (trace == null)
+
+				if (ctx.Get<bool>(CustomTestContext.BASELINE_DISABLED) != true)
 				{
-					trace = new StringBuilder();
-					ctx.Set(CustomTestContext.TRACE, trace);
+					if (message?.StartsWith("BeforeExecute") == true)
+					{
+						var baseline = ctx.Get<StringBuilder>(CustomTestContext.BASELINE);
+						if (baseline == null)
+						{
+							baseline = new StringBuilder();
+							ctx.Set(CustomTestContext.BASELINE, baseline);
+						}
+						baseline.AppendLine(message);
+					}
 				}
 
-				trace.AppendLine($"{name}: {message}");
-
-				if (traceCount < TRACES_LIMIT || level == TraceLevel.Error)
+				if (ctx.Get<bool>(CustomTestContext.TRACE_DISABLED) != true)
 				{
-					ctx.Set(CustomTestContext.LIMITED, true);
-					Console.WriteLine("{0}: {1}", name, message);
-					Debug.WriteLine(message, name);
-				}
+					var trace = ctx.Get<StringBuilder>(CustomTestContext.TRACE);
+					if (trace == null)
+					{
+						trace = new StringBuilder();
+						ctx.Set(CustomTestContext.TRACE, trace);
+					}
 
-				traceCount++;
+					trace.AppendLine($"{name}: {message}");
+
+					if (traceCount < TRACES_LIMIT || level == TraceLevel.Error)
+					{
+						ctx.Set(CustomTestContext.LIMITED, true);
+						Console.WriteLine("{0}: {1}", name, message);
+						Debug.WriteLine(message, name);
+					}
+
+					traceCount++;
+				}
 			};
 
 			//			Configuration.RetryPolicy.Factory = db => new Retry();
 
 			Configuration.Linq.TraceMapperExpression = false;
 			//			Configuration.Linq.GenerateExpressionTest  = true;
-			var assemblyPath = typeof(TestBase).Assembly.GetPath();
+			var assemblyPath = typeof(TestBase).Assembly.GetPath()!;
 
 #if NET46
 			try
@@ -84,6 +109,10 @@ namespace Tests
 			catch // this can fail during tests discovering with NUnitTestAdapter
 			{ }
 #endif
+
+			_rootPath = Path.GetDirectoryName(GetFilePath(assemblyPath, "linq2db.sln"))!;
+			_baselinesPath = Path.Combine(_rootPath, "Tests", "Baselines");
+			Directory.CreateDirectory(_baselinesPath);
 
 			Environment.CurrentDirectory = assemblyPath;
 
@@ -499,13 +528,7 @@ namespace Tests
 		}
 
 		private   List<Parent4>? _parent4;
-		protected List<Parent4>   Parent4
-		{
-			get
-			{
-				return _parent4 ??= Parent.Select(p => new Parent4 { ParentID = p.ParentID, Value1 = ConvertTo<TypeValue>.From(p.Value1) }).ToList();
-			}
-		}
+		protected List<Parent4> Parent4 => _parent4 ??= Parent.Select(p => new Parent4 { ParentID = p.ParentID, Value1 = ConvertTo<TypeValue>.From(p.Value1) }).ToList();
 
 		private   List<Parent5>? _parent5;
 		protected List<Parent5>   Parent5
@@ -541,38 +564,20 @@ namespace Tests
 		}
 
 		private   List<ParentInheritanceValue>? _parentInheritanceValue;
-		protected List<ParentInheritanceValue>   ParentInheritanceValue
-		{
-			get
-			{
-				return _parentInheritanceValue ??=
+		protected List<ParentInheritanceValue> ParentInheritanceValue => _parentInheritanceValue ??=
 					ParentInheritance.Where(p => p is ParentInheritanceValue).Cast<ParentInheritanceValue>().ToList();
-			}
-		}
 
 		private   List<ParentInheritance1>? _parentInheritance1;
-		protected List<ParentInheritance1>  ParentInheritance1
-		{
-			get
-			{
-				return _parentInheritance1 ??=
+		protected List<ParentInheritance1> ParentInheritance1 => _parentInheritance1 ??=
 					ParentInheritance.Where(p => p is ParentInheritance1).Cast<ParentInheritance1>().ToList();
-			}
-		}
 
 		private   List<ParentInheritanceBase4>? _parentInheritance4;
-		protected List<ParentInheritanceBase4>   ParentInheritance4
-		{
-			get
-			{
-				return _parentInheritance4 ??= Parent
+		protected List<ParentInheritanceBase4> ParentInheritance4 => _parentInheritance4 ??= Parent
 					.Where(p => p.Value1.HasValue && (new[] { 1, 2 }.Contains(p.Value1.Value)))
 					.Select(p => p.Value1 == 1 ?
 						(ParentInheritanceBase4)new ParentInheritance14 { ParentID = p.ParentID } :
 						(ParentInheritanceBase4)new ParentInheritance24 { ParentID = p.ParentID }
 				).ToList();
-			}
-		}
 
 		protected List<Child>?      _child;
 		protected IEnumerable<Child> Child
@@ -817,15 +822,9 @@ namespace Tests
 			}
 
 			private List<Northwind.ActiveProduct>? _activeProduct;
-			public List<Northwind.ActiveProduct>    ActiveProduct
-			{
-				get { return _activeProduct ??= Product.OfType<Northwind.ActiveProduct>().ToList(); }
-			}
+			public List<Northwind.ActiveProduct> ActiveProduct => _activeProduct ??= Product.OfType<Northwind.ActiveProduct>().ToList();
 
-			public IEnumerable<Northwind.DiscontinuedProduct> DiscontinuedProduct
-			{
-				get { return Product.OfType<Northwind.DiscontinuedProduct>(); }
-			}
+			public IEnumerable<Northwind.DiscontinuedProduct> DiscontinuedProduct => Product.OfType<Northwind.DiscontinuedProduct>();
 
 			private List<Northwind.Region>? _region;
 			public List<Northwind.Region>    Region
@@ -1092,11 +1091,18 @@ namespace Tests
 		[TearDown]
 		public virtual void OnAfterTest()
 		{
-			if (TestContext.CurrentContext.Result.FailCount > 0)
+			var ctx = CustomTestContext.Get();
+
+			var baseline = ctx.Get<StringBuilder>(CustomTestContext.BASELINE);
+			if (baseline != null)
 			{
-				var ctx = CustomTestContext.Get();
-				var trace = ctx.Get<StringBuilder>(CustomTestContext.TRACE);
-				if (trace != null && ctx.Get<bool>(CustomTestContext.LIMITED))
+				BaselinesWriter.Write(_baselinesPath, baseline.ToString());
+			}
+
+			var trace = ctx.Get<StringBuilder>(CustomTestContext.TRACE);
+			if (trace != null && TestContext.CurrentContext.Result.FailCount > 0)
+			{
+				if (ctx.Get<bool>(CustomTestContext.LIMITED))
 				{
 					// we need to set ErrorInfo.Message element text
 					// because Azure displays only ErrorInfo node data
@@ -1110,7 +1116,7 @@ namespace Tests
 			CustomTestContext.Release();
 		}
 
-		protected bool IsIDSProvider(string context)
+		protected static bool IsIDSProvider(string context)
 		{
 			if (!context.Contains("Informix"))
 				return false;
@@ -1299,17 +1305,37 @@ namespace Tests
 
 	public class DisableLogging : IDisposable
 	{
-		private TraceSwitch _traceSwitch;
+		private readonly CustomTestContext _ctx;
+		private readonly bool _oldState;
 
 		public DisableLogging()
 		{
-			_traceSwitch = DataConnection.TraceSwitch;
-			DataConnection.TurnTraceSwitchOn(TraceLevel.Off);
+			_ctx   = CustomTestContext.Get();
+			_oldState = _ctx.Get<bool>(CustomTestContext.TRACE_DISABLED);
+			_ctx.Set(CustomTestContext.TRACE_DISABLED, true);
 		}
 
 		public void Dispose()
 		{
-			DataConnection.TraceSwitch = _traceSwitch;
+			_ctx.Set(CustomTestContext.TRACE_DISABLED, _oldState);
+		}
+	}
+
+	public class DisableBaseline : IDisposable
+	{
+		private readonly CustomTestContext _ctx;
+		private readonly bool _oldState;
+
+		public DisableBaseline(string reason)
+		{
+			_ctx = CustomTestContext.Get();
+			_oldState = _ctx.Get<bool>(CustomTestContext.BASELINE_DISABLED);
+			_ctx.Set(CustomTestContext.BASELINE_DISABLED, true);
+		}
+
+		public void Dispose()
+		{
+			_ctx.Set(CustomTestContext.BASELINE_DISABLED, _oldState);
 		}
 	}
 

@@ -27,7 +27,7 @@ namespace Tests.DataProvider
 			public string? Name { get; set; }
 		}
 
-		internal static TVPRecord[] TestData = new[]
+		internal static TVPRecord[] TestUDTData = new[]
 		{
 			new TVPRecord(),
 			new TVPRecord() { Id = 1, Name = "Value1" },
@@ -41,7 +41,7 @@ namespace Tests.DataProvider
 			table.Columns.Add("Id",   typeof(int));
 			table.Columns.Add("Name", typeof(string));
 
-			foreach (var record in TestData)
+			foreach (var record in TestUDTData)
 			{
 				table.Rows.Add(record.Id, record.Name);
 			}
@@ -55,7 +55,7 @@ namespace Tests.DataProvider
 				new SqlMetaData("Id",   SqlDbType.Int),
 				new SqlMetaData("Name", SqlDbType.NVarChar, 10));
 
-			foreach (var record in TestData)
+			foreach (var record in TestUDTData)
 			{
 				sqlRecord.SetValue(0, record.Id);
 				sqlRecord.SetValue(1, record.Name);
@@ -70,7 +70,7 @@ namespace Tests.DataProvider
 				new SqlMetaDataMS("Id", SqlDbType.Int),
 				new SqlMetaDataMS("Name", SqlDbType.NVarChar, 10));
 
-			foreach (var record in TestData)
+			foreach (var record in TestUDTData)
 			{
 				sqlRecord.SetValue(0, record.Id);
 				sqlRecord.SetValue(1, record.Name);
@@ -95,7 +95,7 @@ namespace Tests.DataProvider
 				// before we can pass it to provider
 				// as DbDataReader
 				//var sql = new StringBuilder();
-				//foreach (var record in TestData)
+				//foreach (var record in TestUDTData)
 				//{
 				//	if (sql.Length > 0)
 				//		sql.Append(" UNION ALL ");
@@ -157,7 +157,7 @@ namespace Tests.DataProvider
 			{
 				var result = db.QueryProc<TVPRecord>("TableTypeTestProc", parameterGetter(external));
 
-				AreEqualWithComparer(TestData, result);
+				AreEqualWithComparer(TestUDTData, result);
 			}
 		}
 
@@ -172,7 +172,7 @@ namespace Tests.DataProvider
 				var result = from record in db.FromSql<TVPRecord>($"{parameterGetter(external)}")
 							 select new TVPRecord() { Id = record.Id, Name = record.Name };
 
-				AreEqualWithComparer(TestData, result);
+				AreEqualWithComparer(TestUDTData, result);
 			}
 		}
 
@@ -230,7 +230,7 @@ namespace Tests.DataProvider
 					from record in TableValue(db, parameterGetter(external))
 					select new TVPRecord() { Id = record.Id, Name = record.Name };
 
-				AreEqualWithComparer(TestData, result);
+				AreEqualWithComparer(TestUDTData, result);
 			}
 		}
 
@@ -268,7 +268,7 @@ namespace Tests.DataProvider
 			{
 				var result = TableTypeTestProc(db, GetDataTable());
 
-				AreEqualWithComparer(TestData, result);
+				AreEqualWithComparer(TestUDTData, result);
 			}
 		}
 

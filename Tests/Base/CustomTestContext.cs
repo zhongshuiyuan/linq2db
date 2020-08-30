@@ -1,30 +1,34 @@
 ﻿using System.Collections.Generic;
-using System.Threading;
 
 namespace Tests
 {
 	internal class CustomTestContext
 	{
-		public static string TRACE = "key-trace";
-		public static string LIMITED = "key-limited";
+		public static string BASELINE          = "key-baseline";
+		public static string TRACE             = "key-trace";
+		public static string LIMITED           = "key-limited";
+		public static string BASELINE_DISABLED = "key-baseline-disabled";
+		public static string TRACE_DISABLED    = "key-trace-disabled";
 
-		private static readonly AsyncLocal<CustomTestContext?> _context = new AsyncLocal<CustomTestContext?>();
+		// because we don't use parallel test run, we just use single global context instance
+		// it allows us to access context from other threads, started by tests and from linqservice server
+		private static readonly CustomTestContext _context = new CustomTestContext();
 
 		private readonly IDictionary<string, object?> _state = new Dictionary<string, object?>();
 
-		public static CustomTestContext Create()
-		{
-			return _context.Value = new CustomTestContext();
-		}
-
 		public static CustomTestContext Get()
 		{
-			return _context.Value ?? Create();
+			return _context;
 		}
 
 		public static void Release()
 		{
-			_context.Value = null;
+			_context.Reset();
+		}
+
+		private void Reset()
+		{
+			_state.Clear();
 		}
 
 		public TValue Get<TValue>(string name)

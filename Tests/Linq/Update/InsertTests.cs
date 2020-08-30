@@ -410,8 +410,8 @@ namespace Tests.xUpdate
 			using (var db = GetDataContext(context))
 			using (var table = db.CreateLocalTable(new []
 			{
-				new InsertTable{Id = 1, CreatedOn = DateTime.Now, ModifiedOn = DateTime.Now}, 
-				new InsertTable{Id = 2, CreatedOn = DateTime.Now, ModifiedOn = DateTime.Now}, 
+				new InsertTable{Id = 1, CreatedOn = TestData.DateTime, ModifiedOn = TestData.DateTime},
+				new InsertTable{Id = 2, CreatedOn = TestData.DateTime, ModifiedOn = TestData.DateTime},
 			}))
 			{
 				var affected = table

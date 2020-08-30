@@ -61,6 +61,7 @@ namespace Tests.UserTests
 		{
 			const int recordsCount = 20;
 
+			using (new DisableBaseline("Multi-threading"))
 			using (var db = new TestDataConnection(context))
 			using (db.CreateLocalTable<InsertTable>())
 			{

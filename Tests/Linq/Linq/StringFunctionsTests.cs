@@ -488,7 +488,7 @@ namespace Tests.Linq
 		}
 
 		[Test]
-		public void Issue1765TestParameter4([StringTestSources] string context, [Values(" -> ", " => ", " -> ")] string separator)
+		public void Issue1765TestParameter4([StringTestSources] string context, [Values(" -> ", " => ")] string separator)
 		{
 			var data = GenerateData();
 

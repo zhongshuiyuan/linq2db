@@ -605,7 +605,7 @@ namespace Tests.Data
 				if (tvpSupported)
 				{
 					//// assert TVP type name
-					var record     = SqlServerTypesTests.TestData[0];
+					var record     = SqlServerTypesTests.TestUDTData[0];
 					var parameter  = new DataParameter("p", SqlServerTypesTests.GetSqlDataRecords()) { DbType = SqlServerTypesTests.TYPE_NAME };
 					var readRecord = (from r in db.FromSql<SqlServerTypesTests.TVPRecord>($"select * from {parameter}")
 									  where r.Id == record.Id
@@ -767,7 +767,7 @@ namespace Tests.Data
 				if (tvpSupported)
 				{
 					//// assert TVP type name
-					var record     = SqlServerTypesTests.TestData[0];
+					var record     = SqlServerTypesTests.TestUDTData[0];
 					var parameter  = new DataParameter("p", SqlServerTypesTests.GetSqlDataRecordsMS()) { DbType = SqlServerTypesTests.TYPE_NAME };
 					var readRecord = (from r in db.FromSql<SqlServerTypesTests.TVPRecord>($"select * from {parameter}")
 									  where r.Id == record.Id

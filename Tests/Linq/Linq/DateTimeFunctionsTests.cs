@@ -59,6 +59,7 @@ namespace Tests.Linq
 		[Test]
 		public void GetDate([DataSources] string context)
 		{
+			using (new DisableBaseline("Server-side date generation test"))
 			using (var db = GetDataContext(context))
 			{
 				var q = from p in db.Person where p.ID == 1 select new { Now = Sql.AsSql(Sql.GetDate()) };
