@@ -309,7 +309,7 @@ namespace Tests.xUpdate
 					.Value(c => c.ChildID, () => id);
 
 				var sql = insertable.ToString();
-				Console.WriteLine(sql);
+				TestContext.WriteLine(sql);
 
 				Assert.That(sql, Does.Contain("INSERT"));
 			}

@@ -3,4 +3,3 @@
 *.sln      text      eol=crlf
 *.csproj   text      eol=crlf
 *.sh       text      eol=lf
-*.baseline text      eol=lf

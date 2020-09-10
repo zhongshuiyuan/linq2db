@@ -176,7 +176,7 @@ namespace Tests.xUpdate
 						.Set(c => c.ChildID, c => c.ChildID + 1);
 
 				var sql = updatable.ToString();
-				Console.WriteLine(sql);
+				TestContext.WriteLine(sql);
 
 				Assert.That(sql, Does.Contain("UPDATE"));
 			}

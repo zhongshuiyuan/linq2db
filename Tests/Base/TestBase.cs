@@ -34,17 +34,16 @@ namespace Tests
 	{
 		protected class TestData
 		{
-			public static readonly DateTime DateTime = new DateTime(2020, 8, 29, 17, 54, 55, 123).AddTicks(1234);
-			public static readonly DateTime Date = new DateTime(2020, 8, 29);
-			public static readonly Guid Guid1 = new Guid("bc7b663d-0fde-4327-8f92-5d8cc3a11d11");
-			public static readonly Guid Guid2 = new Guid("a948600d-de21-4f74-8ac2-9516b287076e");
-			public static readonly Guid Guid3 = new Guid("bd3973a5-4323-4dd8-9f4f-df9f93e2a627");
+			public static readonly DateTime DateTime = new DateTime(2020, 2, 29, 17, 54, 55, 123).AddTicks(1234);
+			public static readonly DateTime Date     = new DateTime(2020, 2, 29);
+			public static readonly Guid     Guid1    = new Guid("bc7b663d-0fde-4327-8f92-5d8cc3a11d11");
+			public static readonly Guid     Guid2    = new Guid("a948600d-de21-4f74-8ac2-9516b287076e");
+			public static readonly Guid     Guid3    = new Guid("bd3973a5-4323-4dd8-9f4f-df9f93e2a627");
 		}
 
 		private const int TRACES_LIMIT = 50000;
 		
-		private static string _rootPath;
-		private static string _baselinesPath;
+		private static string? _baselinesPath;
 
 		static TestBase()
 		{
@@ -109,10 +108,6 @@ namespace Tests
 			catch // this can fail during tests discovering with NUnitTestAdapter
 			{ }
 #endif
-
-			_rootPath = Path.GetDirectoryName(GetFilePath(assemblyPath, "linq2db.sln"))!;
-			_baselinesPath = Path.Combine(_rootPath, "Tests", "Baselines");
-			Directory.CreateDirectory(_baselinesPath);
 
 			Environment.CurrentDirectory = assemblyPath;
 
@@ -223,6 +218,14 @@ namespace Tests
 				};
 			};
 #endif
+
+			// baselines
+			if (!string.IsNullOrWhiteSpace(testSettings.BaselinesPath))
+			{
+				var baselinesPath = Path.GetFullPath(testSettings.BaselinesPath);
+				if (Directory.Exists(baselinesPath))
+					_baselinesPath = baselinesPath;
+			}
 		}
 
 		protected static string? GetFilePath(string basePath, string findFileName)
@@ -1093,24 +1096,22 @@ namespace Tests
 		{
 			var ctx = CustomTestContext.Get();
 
-			var baseline = ctx.Get<StringBuilder>(CustomTestContext.BASELINE);
-			if (baseline != null)
+			if (_baselinesPath != null)
 			{
-				BaselinesWriter.Write(_baselinesPath, baseline.ToString());
+				var baseline = ctx.Get<StringBuilder>(CustomTestContext.BASELINE);
+				if (baseline != null)
+					BaselinesWriter.Write(_baselinesPath, baseline.ToString());
 			}
 
 			var trace = ctx.Get<StringBuilder>(CustomTestContext.TRACE);
-			if (trace != null && TestContext.CurrentContext.Result.FailCount > 0)
+			if (trace != null && TestContext.CurrentContext.Result.FailCount > 0 && ctx.Get<bool>(CustomTestContext.LIMITED))
 			{
-				if (ctx.Get<bool>(CustomTestContext.LIMITED))
-				{
-					// we need to set ErrorInfo.Message element text
-					// because Azure displays only ErrorInfo node data
-					TestExecutionContext.CurrentContext.CurrentResult.SetResult(
-						TestExecutionContext.CurrentContext.CurrentResult.ResultState,
-						TestExecutionContext.CurrentContext.CurrentResult.Message + "\r\n" + trace.ToString(),
-						TestExecutionContext.CurrentContext.CurrentResult.StackTrace);
-				}
+				// we need to set ErrorInfo.Message element text
+				// because Azure displays only ErrorInfo node data
+				TestExecutionContext.CurrentContext.CurrentResult.SetResult(
+					TestExecutionContext.CurrentContext.CurrentResult.ResultState,
+					TestExecutionContext.CurrentContext.CurrentResult.Message + "\r\n" + trace.ToString(),
+					TestExecutionContext.CurrentContext.CurrentResult.StackTrace);
 			}
 
 			CustomTestContext.Release();

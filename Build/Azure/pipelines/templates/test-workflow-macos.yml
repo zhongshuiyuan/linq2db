@@ -1,0 +1,67 @@
+parameters:
+  artifacts: ''
+  netcoreversion: ''
+
+steps:
+- checkout: none
+
+- task: DownloadPipelineArtifact@2
+  inputs:
+    artifactName: ${{ parameters.artifacts }}
+    targetPath: '$(System.DefaultWorkingDirectory)'
+  condition: variables['enabled']
+
+- task: CmdLine@2
+  inputs:
+    script: 'cp $(System.DefaultWorkingDirectory)/configs/$(config).json UserDataProviders.json'
+    workingDirectory: '$(System.DefaultWorkingDirectory)'
+  displayName: Copy test config
+  condition: variables['enabled']
+
+- task: CmdLine@2
+  inputs:
+    script: 'chmod +x mac.docker.sh'
+    workingDirectory: '$(System.DefaultWorkingDirectory)/scripts'
+  condition: and(variables['enabled'], variables['docker'])
+  displayName: Mark docker install script as executable
+
+- task: CmdLine@2
+  inputs:
+    script: '$(System.DefaultWorkingDirectory)/scripts/mac.docker.sh'
+  condition: and(variables['enabled'], variables['docker'])
+  displayName: Install Docker
+
+- task: NuGet@0
+  displayName: Install nugets
+  inputs:
+    command: 'install'
+    arguments: '$(nuget) -ExcludeVersion'
+    workingDirectory: '$(System.DefaultWorkingDirectory)/scripts'
+  condition: and(variables['enabled'], variables['nuget'])
+
+- task: CmdLine@2
+  inputs:
+    script: 'chmod +x $(script)'
+    workingDirectory: '$(System.DefaultWorkingDirectory)/scripts'
+  condition: and(variables['enabled'], succeeded(), variables['script'])
+  displayName: Mark script as executable
+      
+- task: CmdLine@2
+  inputs:
+    script: '$(System.DefaultWorkingDirectory)/scripts/$(script)'
+    workingDirectory: '$(System.DefaultWorkingDirectory)'
+  condition: and(variables['enabled'], succeeded(), variables['script'])
+  displayName: Setup tests
+
+# just because there is no vstest handing in DotNetCoreCLI@2
+# https://github.com/microsoft/azure-pipelines-tasks/blob/master/Tasks/DotNetCoreCLIV2/dotnetcore.ts#L60
+- script: dotnet vstest linq2db.Tests.dll /TestCaseFilter:"TestCategory != SkipCI" /Framework:.NETCoreApp,Version=v${{ parameters.netcoreversion }} /logger:trx
+  condition: and(variables['enabled'], succeeded())
+  displayName: '$(title)'
+
+- task: PublishTestResults@2
+  condition: and(variables['enabled'], succeededOrFailed())
+  inputs:
+    testRunner: VsTest
+    testResultsFiles: '**/*.trx'
+    testRunTitle: 'Mac / NETCOREAPP${{ parameters.netcoreversion }} / $(title)'

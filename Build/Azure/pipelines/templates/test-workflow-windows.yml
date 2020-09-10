@@ -1,0 +1,52 @@
+parameters:
+  isCore: false
+  artifacts: ''
+  framework: ''
+  titleFramework: ''
+
+steps:
+- checkout: none
+
+- task: DownloadPipelineArtifact@2
+  inputs:
+    artifactName: ${{ parameters.artifacts }}
+    targetPath: '$(System.DefaultWorkingDirectory)'
+  condition: variables['enabled']
+
+- task: CmdLine@2
+  inputs:
+    script: 'copy $(System.DefaultWorkingDirectory)\configs\$(config).json UserDataProviders.json'
+    workingDirectory: '$(System.DefaultWorkingDirectory)'
+  displayName: Copy test config
+  condition: variables['enabled']
+
+- task: CmdLine@2
+  inputs:
+    script: '$(System.DefaultWorkingDirectory)\scripts\$(script)'
+    workingDirectory: '$(System.DefaultWorkingDirectory)'
+  condition: and(variables['enabled'], variables['script'])
+  displayName: Setup tests
+
+- task: PowerShell@2
+  inputs:
+    filePath: '$(System.DefaultWorkingDirectory)\scripts\$(psscript)'
+    workingDirectory: '$(System.DefaultWorkingDirectory)'
+  condition: and(variables['enabled'], not(${{ parameters.isCore }}), variables['psscript'])
+  displayName: Setup tests
+
+- task: VSTest@2
+  inputs:
+    testAssemblyVer2: linq2db.Tests.dll
+    platform: '$(buildPlatform)'
+    configuration: '$(buildConfiguration)'
+    testFilterCriteria: 'TestCategory != SkipCI'
+    otherConsoleOptions: '/Framework:${{ parameters.framework }}'
+    testRunTitle: 'Windows / ${{ parameters.titleFramework }} / $(title)'
+  displayName: '$(title)'
+  condition: variables['enabled']
+
+#    - powershell: Get-OdbcDriver | Select Name, Platform
+#      displayName: List ODBC providers
+
+#    - powershell: '[System.Data.OleDb.OleDbEnumerator]::GetRootEnumerator() | % { $_.GetValue(0) + " => " + $_.GetValue(2) }'
+#      displayName: List OLEDB providers

@@ -1849,7 +1849,7 @@ namespace Tests.DataProvider
 					};
 
 				var str = query.ToString();
-				Console.WriteLine(str);
+				TestContext.WriteLine(str);
 			}
 		}
 
@@ -1866,7 +1866,7 @@ namespace Tests.DataProvider
 					};
 
 				var str = query.ToString();
-				Console.WriteLine(str);
+				TestContext.WriteLine(str);
 			}
 		}
 

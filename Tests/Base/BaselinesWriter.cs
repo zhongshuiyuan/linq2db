@@ -44,10 +44,11 @@ namespace Tests
 
 		private static string NormalizeFileName(string name)
 		{
+			// " used in each test name, for now we just remove it
 			return name
-				.Replace("\"", $"0x{((ushort)'"').ToString("X4")}")
-				.Replace(">" , $"0x{((ushort)'>').ToString("X4")}")
-				.Replace("<" , $"0x{((ushort)'<').ToString("X4")}")
+				.Replace("\"", string.Empty)
+				.Replace(">" , $"0x{(ushort)'>':X4}")
+				.Replace("<" , $"0x{(ushort)'<':X4}")
 				;
 		}
 

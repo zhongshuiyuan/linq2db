@@ -160,11 +160,15 @@ The `[User]DataProviders.json` is a regular JSON file:
         // - DefaultConfiguration, TraceLevel, Providers - use value from base configuration only if it is not defined in current configuration
         // - Connections - merge current and base connection strings
         "BasedOn"              : "LocalConnectionStrings",
-                                
+
         // default provider, used as a source of reference data
         // LINQ to DB uses SQLite for it and you hardly need to change it
         "DefaultConfiguration" : "SQLite.Classic",
-                                
+
+        // BaselinesPath
+        // (optional) contains full or relative (from test assembly location) path to test baselines directory.
+        // When set and specified directory exists - enables baselines generation by tests.
+
         // logging level
         // Supported values: Off, Error, Warning, Info, Verbose
         // Default level: Info
